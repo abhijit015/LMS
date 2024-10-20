@@ -35,18 +35,32 @@ const Dealers = () => {
   const fetchCalledRef = useRef(false);
 
   const columns: GridColDef[] = [
-    { field: "name", headerName: "Name", flex: 1, minWidth: 150 },
+    {
+      field: "name",
+      headerName: "Name",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
     {
       field: "contact_num",
       headerName: "Contact Number",
       flex: 1,
       minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
-    { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
+    {
+      field: "email",
+      headerName: "Email",
+      flex: 1,
+      minWidth: 200,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
     {
       field: "actions",
       headerName: "Actions",
       width: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
       renderCell: (params: GridRenderCellParams) => (
         <>
           <IconButton
@@ -201,9 +215,9 @@ const Dealers = () => {
             columns={columns}
             rowHeight={36}
             columnHeaderHeight={36}
-            pageSizeOptions={[5, 10, 25]}
+            pageSizeOptions={[10, 25, 50]}
             initialState={{
-              pagination: { paginationModel: { pageSize: 5 } },
+              pagination: { paginationModel: { pageSize: 10 } },
             }}
           />
         </Box>

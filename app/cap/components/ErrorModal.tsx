@@ -7,9 +7,11 @@ import {
   Button,
   Typography,
   IconButton,
+  Paper,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
+import Draggable from "react-draggable";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -28,6 +30,7 @@ const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
   fontSize: "1.25rem",
   color: theme.palette.error.main,
   padding: theme.spacing(1.5),
+  cursor: "move", // Add this to indicate that the title is draggable
 }));
 
 const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
@@ -41,6 +44,18 @@ const StyledDialogActions = styled(DialogActions)(({ theme }) => ({
     minWidth: "100px",
   },
 }));
+
+// PaperComponent for Draggable functionality
+function PaperComponent(props: any) {
+  return (
+    <Draggable
+      handle="#draggable-error-dialog-title"
+      cancel={'[class*="MuiDialogContent-root"]'}
+    >
+      <Paper {...props} />
+    </Draggable>
+  );
+}
 
 interface ErrorModalProps {
   open: boolean;
@@ -56,8 +71,8 @@ const ErrorModal: React.FC<ErrorModalProps> = ({
   onClose,
 }) => {
   return (
-    <StyledDialog open={open} onClose={onClose}>
-      <StyledDialogTitle>
+    <StyledDialog open={open} onClose={onClose} PaperComponent={PaperComponent}>
+      <StyledDialogTitle id="draggable-error-dialog-title">
         <Typography variant="h6">{title}</Typography>
         <IconButton onClick={onClose} color="inherit">
           <CloseIcon />

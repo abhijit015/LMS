@@ -9,9 +9,11 @@ import {
   Typography,
   Box,
   IconButton,
+  Paper,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
+import Draggable from "react-draggable";
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialog-paper": {
@@ -30,6 +32,7 @@ const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
   fontSize: "1.25rem",
   color: theme.palette.primary.main,
   padding: theme.spacing(1.5),
+  cursor: "move", // Add this to show that the title is draggable
 }));
 
 const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
@@ -44,6 +47,18 @@ const StyledDialogActions = styled(DialogActions)(({ theme }) => ({
   },
 }));
 
+// This PaperComponent is used to make the dialog draggable
+function PaperComponent(props: any) {
+  return (
+    <Draggable
+      handle="#draggable-dialog-title"
+      cancel={'[class*="MuiDialogContent-root"]'}
+    >
+      <Paper {...props} />
+    </Draggable>
+  );
+}
+
 interface ConfirmationDialogProps {
   open: boolean;
   onClose: (confirmed: boolean) => void;
@@ -56,8 +71,12 @@ const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
   message,
 }) => {
   return (
-    <StyledDialog open={open} onClose={() => onClose(false)}>
-      <StyledDialogTitle>
+    <StyledDialog
+      open={open}
+      onClose={() => onClose(false)}
+      PaperComponent={PaperComponent}
+    >
+      <StyledDialogTitle id="draggable-dialog-title">
         <Typography variant="h6">Confirm Action</Typography>
         <IconButton onClick={() => onClose(false)} color="inherit">
           <CloseIcon />
