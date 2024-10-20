@@ -11,6 +11,8 @@ import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Close";
 import CircularProgress from "@mui/material/CircularProgress";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 import {
   GridRowModesModel,
   GridRowModes,
@@ -20,7 +22,6 @@ import {
   GridEventListener,
   GridRowId,
   GridRowEditStopReasons,
-  GridColumnHeaderParams,
 } from "@mui/x-data-grid";
 import { licenseFieldSchemaT } from "../../models/models";
 import {
@@ -31,7 +32,6 @@ import {
 import { ZodError } from "zod";
 import { licenseFieldSchema } from "@/app/zodschema/zodschema";
 import ErrorModal from "@/app/cap/components/ErrorModal";
-import SuccessModal from "@/app/cap/components/SuccessModal";
 import ConfirmationDialog from "@/app/cap/components/ConfirmationDialog";
 
 export default function LicenseFields() {
@@ -194,14 +194,12 @@ export default function LicenseFields() {
       headerName: "S.No",
       width: 70,
       renderCell: (params) => params.row.id,
-      renderHeader: () => <strong>S.No</strong>,
     },
     {
       field: "name",
       headerName: "Name",
       width: 540,
       editable: true,
-      renderHeader: () => <strong>Name</strong>,
     },
     {
       field: "basis",
@@ -210,14 +208,12 @@ export default function LicenseFields() {
       editable: true,
       type: "singleSelect",
       valueOptions: basisOptions.map((option) => option.name),
-      renderHeader: () => <strong>Basis</strong>,
     },
     {
       field: "actions",
       type: "actions",
       headerName: "Actions",
       width: 100,
-      renderHeader: () => <strong>Actions</strong>,
       getActions: ({ id }) => {
         const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
@@ -296,10 +292,6 @@ export default function LicenseFields() {
                 processRowUpdate={processRowUpdate}
                 rowHeight={36}
                 columnHeaderHeight={36}
-                // pageSizeOptions={[5, 10, 25]}
-                // initialState={{
-                //   pagination: { paginationModel: { pageSize: 5 } },
-                // }}
                 hideFooter
               />
             </Box>
@@ -312,25 +304,19 @@ export default function LicenseFields() {
             <Button
               variant="text"
               onClick={handleAddRecord}
-              sx={{
-                fontWeight: "bold",
-                color: (theme) => theme.palette.primary.main,
-                "&:hover": {
-                  color: (theme) => theme.palette.error.main,
-                },
-              }}
+              startIcon={<AddIcon />}
             >
               Insert Row
             </Button>
-
             <Box>
               <Button
                 type="submit"
                 variant="contained"
-                sx={{ mr: 1 }}
+                color="primary"
                 disabled={saving}
+                sx={{ mr: 2 }}
               >
-                {saving ? "Saving..." : "Save"}
+                Save
               </Button>
               <Button variant="outlined" color="primary" onClick={handleQuit}>
                 Quit
@@ -339,27 +325,34 @@ export default function LicenseFields() {
           </Grid>
         </Grid>
       </form>
-      {error && (
-        <ErrorModal
-          open={Boolean(error)}
-          onClose={() => setError(null)}
-          title="Error"
-          message={error}
-        />
-      )}
-      {success && (
-        <SuccessModal
-          open={Boolean(success)}
-          onClose={() => setSuccess(null)}
-          title="Success"
-          message={success}
-        />
-      )}
+
       <ConfirmationDialog
         open={confirmationOpen}
         onClose={handleConfirmSave}
-        message="Are you sure you want to save the changes?"
+        message="Do you want to save these fields?"
       />
+
+      <ErrorModal
+        open={Boolean(error)}
+        title="Error"
+        message={error || ""}
+        onClose={() => setError(null)}
+      />
+
+      <Snackbar
+        open={Boolean(success)}
+        autoHideDuration={6000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSuccess(null)}
+          severity="success"
+          variant="standard"
+        >
+          {success}
+        </Alert>
+      </Snackbar>
     </Layout>
   );
 }
