@@ -194,12 +194,14 @@ export default function LicenseFields() {
       headerName: "S.No",
       width: 70,
       renderCell: (params) => params.row.id,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
       field: "name",
       headerName: "Name",
       width: 540,
       editable: true,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
       field: "basis",
@@ -208,12 +210,14 @@ export default function LicenseFields() {
       editable: true,
       type: "singleSelect",
       valueOptions: basisOptions.map((option) => option.name),
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
       field: "actions",
       type: "actions",
       headerName: "Actions",
       width: 100,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
       getActions: ({ id }) => {
         const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 

@@ -1,227 +1,235 @@
 "use client";
 
-import { Box, TextField, Button, CircularProgress } from "@mui/material";
-import { useRef, useState, useEffect } from "react";
-import Layout from "../layout";
-import { dealerSchema } from "@/app/zodschema/zodschema";
-import { dealerSchemaT } from "@/app/models/models";
+import React, { useEffect, useRef, useState } from "react";
+import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import {
-  saveDealer,
-  loadDealerByID,
+  Box,
+  Button,
+  IconButton,
+  TextField,
+  CircularProgress,
+  Backdrop,
+  InputAdornment,
+} from "@mui/material";
+import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
+import {
+  loadAllDealers,
+  deleteDealerByID,
 } from "@/app/controllers/dealer.controller";
+import { dealerSchemaT } from "@/app/models/models";
 import ErrorModal from "@/app/cap/components/ErrorModal";
 import ConfirmationDialog from "@/app/cap/components/ConfirmationDialog";
-import { useSearchParams, useRouter } from "next/navigation";
+import SearchIcon from "@mui/icons-material/Search";
+import DealerModal from "@/app/cap/dealer/DealerModal";
+import Layout from "../layout";
 
 const Dealers = () => {
-  const formRef = useRef<HTMLFormElement>(null);
+  const [dealers, setDealers] = useState<dealerSchemaT[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [dealerData, setDealerData] = useState<dealerSchemaT | null>(null);
-  const [validationErrors, setValidationErrors] = useState<{
-    [key: string]: string;
-  }>({});
-  const [isConfirmationOpen, setIsConfirmationOpen] = useState<boolean>(false);
-  const [formData, setFormData] = useState<FormData | null>(null);
-  const searchParams = useSearchParams();
-  const dealerId = searchParams.get("id");
-  const router = useRouter();
-  const isFetched = useRef(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [dealerToDelete, setDealerToDelete] = useState<number | null>(null);
+  const [isDealerModalOpen, setIsDealerModalOpen] = useState(false);
+  const [selectedDealerId, setSelectedDealerId] = useState<number | null>(null);
+  const fetchCalledRef = useRef(false);
+
+  const columns: GridColDef[] = [
+    { field: "name", headerName: "Name", flex: 1, minWidth: 150 },
+    {
+      field: "contact_num",
+      headerName: "Contact Number",
+      flex: 1,
+      minWidth: 150,
+    },
+    { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 150,
+      renderCell: (params: GridRenderCellParams) => (
+        <>
+          <IconButton
+            aria-label="edit"
+            onClick={() => handleEdit(params.row.id)}
+            disabled={loading}
+          >
+            <EditIcon />
+          </IconButton>
+          <IconButton
+            aria-label="delete"
+            onClick={() => openConfirmationDialog(params.row.id)}
+            disabled={loading}
+          >
+            <DeleteIcon />
+          </IconButton>
+        </>
+      ),
+    },
+  ];
+
+  const filteredDealers = dealers.filter((dealer) =>
+    dealer.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
-    const fetchDealer = async () => {
-      if (dealerId && !isFetched.current) {
-        isFetched.current = true;
-        try {
-          const response = await loadDealerByID(Number(dealerId));
-          if (response.status) {
-            setDealerData(response.data);
-          } else {
-            setError(
-              typeof response.data === "string"
-                ? response.data
-                : "Error loading dealer data."
-            );
-          }
-        } catch (error) {
-          setError(String(error));
+    const fetchDealers = async () => {
+      setLoading(true);
+      try {
+        const result = await loadAllDealers();
+        if (result) {
+          setDealers(result as dealerSchemaT[]);
+        } else {
+          handleError(result);
         }
+      } catch (error) {
+        setError(
+          "Error fetching dealers: " +
+            (error instanceof Error ? error.message : "Unknown error")
+        );
+      } finally {
+        setLoading(false);
       }
     };
-    fetchDealer();
-  }, [dealerId]);
 
-  const handleReset = () => {
-    formRef.current?.reset();
-    setDealerData(null);
-    setValidationErrors({});
-    setError(null);
+    if (!fetchCalledRef.current) {
+      fetchDealers();
+      fetchCalledRef.current = true;
+    }
+  }, []);
+
+  const handleAddDealer = () => {
+    setSelectedDealerId(null);
+    setIsDealerModalOpen(true);
   };
 
-  const handleFormSubmit = (formData: FormData) => {
-    setFormData(formData);
-    setIsConfirmationOpen(true);
+  const handleEdit = (id: number) => {
+    setSelectedDealerId(id);
+    setIsDealerModalOpen(true);
   };
 
-  const handleSubmit = async () => {
-    if (!formData) return;
+  const openConfirmationDialog = (id: number) => {
+    setDealerToDelete(id);
+    setConfirmationOpen(true);
+  };
 
-    setLoading(true);
-    setError(null);
-    setValidationErrors({});
-    const data: Record<string, any> = Object.fromEntries(formData.entries());
-
-    try {
-      const parsedData = dealerSchema.safeParse(data);
-
-      if (!parsedData.success) {
-        const fieldErrors: Record<string, string> = {};
-        parsedData.error.issues.forEach((issue) => {
-          if (issue.path[0]) {
-            fieldErrors[issue.path[0] as string] = issue.message;
-          }
-        });
-        setValidationErrors(fieldErrors);
-        setLoading(false);
-        return;
-      }
-
-      const dealerData: dealerSchemaT = parsedData.data;
-      if (dealerId) {
-        dealerData.id = Number(dealerId);
-      }
-      const response = await saveDealer(dealerData);
-
-      if (response && response.status) {
-        handleReset();
-        router.push("/cap/dealerList");
-      } else if (response) {
-        if (Array.isArray(response.data)) {
-          const errorMessages = response.data
-            .map((err) =>
-              typeof err.message === "string" ? err.message : "Unknown error"
-            )
-            .join(", ");
-          setError(errorMessages);
-        } else if (typeof response.data === "string") {
-          setError(response.data);
+  const handleDelete = async () => {
+    if (dealerToDelete !== null) {
+      try {
+        const result = await deleteDealerByID(dealerToDelete);
+        if (result?.status) {
+          setDealers(dealers.filter((dealer) => dealer.id !== dealerToDelete));
         } else {
-          setError("Unexpected error format.");
+          handleError(result);
         }
-      } else {
-        setError("Unexpected error: No response from server.");
+      } catch (error) {
+        setError(
+          "Error deleting dealer: " +
+            (error instanceof Error ? error.message : "Unknown error")
+        );
+      } finally {
+        setConfirmationOpen(false);
+        setDealerToDelete(null);
       }
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Server Error: Unable to save data."
-      );
-    } finally {
-      setLoading(false);
     }
   };
 
+  const handleError = (result: any) => {
+    if (Array.isArray(result?.data)) {
+      setError(result.data.map((msg: any) => msg.message).join(", "));
+    } else {
+      setError(result?.data || "Unknown error occurred");
+    }
+  };
+
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+  };
+
+  const handleModalClose = () => {
+    setIsDealerModalOpen(false);
+    loadAllDealers().then((result) => {
+      if (result) setDealers(result as dealerSchemaT[]);
+    });
+  };
+
   return (
-    <Layout title={dealerId ? "Modify Dealer" : "Add Dealer"}>
-      <form
-        ref={formRef}
-        onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.currentTarget);
-          handleFormSubmit(formData);
-        }}
-      >
-        <Box
-          sx={{
-            maxWidth: 400,
-            padding: 1,
-            display: "flex",
-            flexDirection: "column",
-            gap: 3,
-          }}
+    <Layout title={"Dealers"}>
+      <>
+        <Backdrop
+          sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+          open={loading}
         >
+          <CircularProgress color="inherit" />
+        </Backdrop>
+
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
           <TextField
-            name="name"
-            label="Name"
+            label="Search"
             variant="outlined"
-            fullWidth
-            required
+            value={searchQuery}
+            onChange={handleSearchChange}
             size="small"
-            defaultValue={dealerData?.name || ""}
-            error={Boolean(validationErrors.name)}
-            helperText={validationErrors.name}
-            onChange={() =>
-              setValidationErrors((prev) => ({ ...prev, name: "" }))
-            }
+            sx={{ width: "450px" }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
           />
-          <TextField
-            name="contact_num"
-            label="Contact Number"
-            variant="outlined"
-            fullWidth
-            size="small"
-            defaultValue={dealerData?.contact_num || ""}
-            error={Boolean(validationErrors.contact_num)}
-            helperText={validationErrors.contact_num}
-            onChange={() =>
-              setValidationErrors((prev) => ({ ...prev, contact_num: "" }))
-            }
-          />
-          <TextField
-            name="email"
-            label="Email Address"
-            variant="outlined"
-            fullWidth
-            size="small"
-            defaultValue={dealerData?.email || ""}
-            error={Boolean(validationErrors.email)}
-            helperText={validationErrors.email}
-            onChange={() =>
-              setValidationErrors((prev) => ({ ...prev, email: "" }))
-            }
-          />
-          <Box
-            sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
+
+          <Button
+            variant="text"
+            onClick={handleAddDealer}
+            sx={{
+              fontWeight: "bold",
+              color: (theme) => theme.palette.primary.main,
+              "&:hover": {
+                color: (theme) => theme.palette.error.main,
+              },
+            }}
           >
-            <Button
-              variant="contained"
-              color="primary"
-              type="submit"
-              disabled={loading}
-              startIcon={loading && <CircularProgress size={20} />}
-            >
-              {loading ? "Saving..." : "SAVE"}
-            </Button>
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={handleReset}
-              disabled={loading}
-            >
-              RESET
-            </Button>
-          </Box>
+            Add Dealer
+          </Button>
         </Box>
-      </form>
-      <ErrorModal
-        open={Boolean(error)}
-        title="Error"
-        message={error || ""}
-        onClose={() => setError(null)}
-      />
-      <ConfirmationDialog
-        open={isConfirmationOpen}
-        onClose={(confirmed) => {
-          setIsConfirmationOpen(false);
-          if (confirmed) handleSubmit();
-        }}
-        message={
-          dealerId
-            ? "Are you sure you want to modify this dealer?"
-            : "Are you sure you want to add this dealer?"
-        }
-      />
+
+        <Box sx={{ height: 400, width: "100%" }}>
+          <DataGrid
+            rows={filteredDealers}
+            columns={columns}
+            rowHeight={36}
+            columnHeaderHeight={36}
+            pageSizeOptions={[5, 10, 25]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 5 } },
+            }}
+          />
+        </Box>
+
+        <ConfirmationDialog
+          open={confirmationOpen}
+          onClose={(confirmed) => {
+            if (confirmed) handleDelete();
+            else setConfirmationOpen(false);
+          }}
+          message="Are you sure you want to delete this dealer?"
+        />
+
+        <ErrorModal
+          open={Boolean(error)}
+          title="Error"
+          message={error || ""}
+          onClose={() => setError(null)}
+        />
+
+        <DealerModal
+          open={isDealerModalOpen}
+          dealerId={selectedDealerId}
+          onClose={handleModalClose}
+        />
+      </>
     </Layout>
   );
 };
