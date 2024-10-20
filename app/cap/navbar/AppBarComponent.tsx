@@ -1,6 +1,4 @@
 // AppBarComponent.tsx
-"use client";
-
 import {
   AppBar,
   Toolbar,
@@ -15,7 +13,7 @@ import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { useState } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import DrawerItems from "./DrawerItems"; // Import the new DrawerItems component
+import DrawerItems from "./DrawerItems";
 
 const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
   const [open, setOpen] = useState(false);
@@ -104,7 +102,7 @@ const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
         onClose={handleDrawerToggle}
       >
         <Toolbar />
-        <DrawerItems />
+        <DrawerItems onClose={handleDrawerToggle} />
       </Drawer>
     </>
   );

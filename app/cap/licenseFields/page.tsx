@@ -10,10 +10,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Close";
-import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import {
-  GridRowsProp,
   GridRowModesModel,
   GridRowModes,
   DataGrid,
@@ -22,6 +20,7 @@ import {
   GridEventListener,
   GridRowId,
   GridRowEditStopReasons,
+  GridColumnHeaderParams,
 } from "@mui/x-data-grid";
 import { licenseFieldSchemaT } from "../../models/models";
 import {
@@ -31,9 +30,9 @@ import {
 } from "../../controllers/licenseFields.controller";
 import { ZodError } from "zod";
 import { licenseFieldSchema } from "@/app/zodschema/zodschema";
-import ErrorModal from "@/app/components/errorModal";
-import SuccessModal from "@/app/components/successModal";
-import ConfirmationDialog from "@/app/components/confirmationDialog";
+import ErrorModal from "@/app/cap/components/ErrorModal";
+import SuccessModal from "@/app/cap/components/SuccessModal";
+import ConfirmationDialog from "@/app/cap/components/ConfirmationDialog";
 
 export default function LicenseFields() {
   const [rows, setRows] = React.useState<licenseFieldSchemaT[]>([]);
@@ -195,12 +194,14 @@ export default function LicenseFields() {
       headerName: "S.No",
       width: 70,
       renderCell: (params) => params.row.id,
+      renderHeader: () => <strong>S.No</strong>,
     },
     {
       field: "name",
       headerName: "Name",
-      width: 270,
+      width: 540,
       editable: true,
+      renderHeader: () => <strong>Name</strong>,
     },
     {
       field: "basis",
@@ -209,12 +210,14 @@ export default function LicenseFields() {
       editable: true,
       type: "singleSelect",
       valueOptions: basisOptions.map((option) => option.name),
+      renderHeader: () => <strong>Basis</strong>,
     },
     {
       field: "actions",
       type: "actions",
       headerName: "Actions",
       width: 100,
+      renderHeader: () => <strong>Actions</strong>,
       getActions: ({ id }) => {
         const isInEditMode = rowModesModel[id]?.mode === GridRowModes.Edit;
 
@@ -283,6 +286,7 @@ export default function LicenseFields() {
                 </Box>
               )}
               <DataGrid
+                autoHeight={false}
                 rows={rows}
                 columns={columns}
                 editMode="row"
@@ -290,10 +294,13 @@ export default function LicenseFields() {
                 onRowModesModelChange={setRowModesModel}
                 onRowEditStop={handleRowEditStop}
                 processRowUpdate={processRowUpdate}
-                pageSizeOptions={[5, 10, 25]}
-                initialState={{
-                  pagination: { paginationModel: { pageSize: 5 } },
-                }}
+                rowHeight={36}
+                columnHeaderHeight={36}
+                // pageSizeOptions={[5, 10, 25]}
+                // initialState={{
+                //   pagination: { paginationModel: { pageSize: 5 } },
+                // }}
+                hideFooter
               />
             </Box>
           </Grid>
@@ -303,12 +310,19 @@ export default function LicenseFields() {
             sx={{ display: "flex", justifyContent: "space-between" }}
           >
             <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
+              variant="text"
               onClick={handleAddRecord}
+              sx={{
+                fontWeight: "bold",
+                color: (theme) => theme.palette.primary.main,
+                "&:hover": {
+                  color: (theme) => theme.palette.error.main,
+                },
+              }}
             >
               Insert Row
             </Button>
+
             <Box>
               <Button
                 type="submit"

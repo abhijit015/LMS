@@ -3,26 +3,36 @@
 import { List, ListItemButton, ListItemText } from "@mui/material";
 import Link from "next/link";
 
-const DrawerItems = () => {
+interface DrawerItemsProps {
+  onClose: () => void;
+}
+
+const DrawerItems: React.FC<DrawerItemsProps> = ({ onClose }) => {
   return (
     <List>
-      <ListItemButton component={Link} href="/cap/licenseFields">
+      <ListItemButton
+        component={Link}
+        href="/cap/licenseFields"
+        onClick={onClose}
+      >
         <ListItemText primary="License Fields" />
       </ListItemButton>
-      <ListItemButton component={Link} href="/cap/productList">
+      <ListItemButton
+        component={Link}
+        href="/cap/productList"
+        onClick={onClose}
+      >
         <ListItemText primary="Products" />
       </ListItemButton>
-      <ListItemButton component={Link} href="/cap/dealerList">
+      <ListItemButton component={Link} href="/cap/dealerList" onClick={onClose}>
         <ListItemText primary="Dealers" />
       </ListItemButton>
-      <ListItemButton component={Link} href="/cap/businessEntityList">
+      <ListItemButton
+        component={Link}
+        href="/cap/businessEntityList"
+        onClick={onClose}
+      >
         <ListItemText primary="Business Entities" />
-      </ListItemButton>
-      <ListItemButton component={Link} href="#">
-        <ListItemText primary="Rate Card" />
-      </ListItemButton>
-      <ListItemButton component={Link} href="#">
-        <ListItemText primary="Users" />
       </ListItemButton>
     </List>
   );

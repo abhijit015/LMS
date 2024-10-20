@@ -50,7 +50,7 @@ export const dealerSchema = z.object({
     .max(255, "Name Cannot Exceed 255 Characters"),
   contact_num: z.string()
     .trim()
-    .max(255, "Contact Number Cannot Exceed 255 Characters")
+    .max(2, "Contact Number Cannot Exceed 255 Characters")
     .optional(),
   email: z.string()
     .trim()

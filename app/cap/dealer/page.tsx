@@ -9,8 +9,8 @@ import {
   saveDealer,
   loadDealerByID,
 } from "@/app/controllers/dealer.controller";
-import ErrorModal from "@/app/components/errorModal";
-import ConfirmationDialog from "@/app/components/confirmationDialog";
+import ErrorModal from "@/app/cap/components/ErrorModal";
+import ConfirmationDialog from "@/app/cap/components/ConfirmationDialog";
 import { useSearchParams, useRouter } from "next/navigation";
 
 const Dealers = () => {

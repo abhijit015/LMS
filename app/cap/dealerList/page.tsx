@@ -11,6 +11,7 @@ import {
   TextField,
   CircularProgress,
   Backdrop,
+  InputAdornment,
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import {
@@ -18,8 +19,9 @@ import {
   deleteDealerByID,
 } from "@/app/controllers/dealer.controller";
 import { dealerSchemaT } from "@/app/models/models";
-import ErrorModal from "@/app/components/errorModal";
-import ConfirmationDialog from "@/app/components/confirmationDialog";
+import ErrorModal from "@/app/cap/components/ErrorModal";
+import ConfirmationDialog from "@/app/cap/components/ConfirmationDialog";
+import SearchIcon from "@mui/icons-material/Search";
 
 const Dealers = () => {
   const router = useRouter();
@@ -32,33 +34,47 @@ const Dealers = () => {
   const fetchCalledRef = useRef(false);
 
   const columns: GridColDef[] = [
-    { field: "name", headerName: "Name", flex: 1, minWidth: 150 },
+    {
+      field: "name",
+      headerName: "Name",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: () => <strong>Name</strong>,
+    },
     {
       field: "contact_num",
       headerName: "Contact Number",
       flex: 1,
       minWidth: 150,
+      renderHeader: () => <strong>Contact Number</strong>,
     },
-    { field: "email", headerName: "Email", flex: 1, minWidth: 200 },
+    {
+      field: "email",
+      headerName: "Email",
+      flex: 1,
+      minWidth: 200,
+      renderHeader: () => <strong>Email</strong>,
+    },
     {
       field: "actions",
       headerName: "Actions",
       width: 150,
+      renderHeader: () => <strong>Actions</strong>,
       renderCell: (params: GridRenderCellParams) => (
         <>
           <IconButton
             aria-label="edit"
-            color="primary"
+            //color="primary"
             onClick={() => handleEdit(params.row.id)}
-            disabled={loading} // Disable if loading
+            disabled={loading}
           >
             <EditIcon />
           </IconButton>
           <IconButton
             aria-label="delete"
-            color="error"
+            //color="error"
             onClick={() => openConfirmationDialog(params.row.id)}
-            disabled={loading} // Disable if loading
+            disabled={loading}
           >
             <DeleteIcon />
           </IconButton>
@@ -163,15 +179,26 @@ const Dealers = () => {
             value={searchQuery}
             onChange={handleSearchChange}
             size="small"
-            sx={{ height: 40 }}
+            sx={{ width: "450px" }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
           />
+
           <Button
-            variant="contained"
-            color="primary"
+            variant="text"
             onClick={handleAddDealer}
-            size="small"
-            sx={{ height: 40 }}
-            disabled={loading} // Disable if loading
+            sx={{
+              fontWeight: "bold",
+              color: (theme) => theme.palette.primary.main,
+              "&:hover": {
+                color: (theme) => theme.palette.error.main,
+              },
+            }}
           >
             Add Dealer
           </Button>
@@ -181,7 +208,8 @@ const Dealers = () => {
           <DataGrid
             rows={filteredDealers}
             columns={columns}
-            autoHeight
+            rowHeight={36}
+            columnHeaderHeight={36}
             pageSizeOptions={[5, 10, 25]}
             initialState={{
               pagination: { paginationModel: { pageSize: 5 } },

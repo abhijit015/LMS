@@ -15,11 +15,12 @@ import {
   Link,
   Backdrop,
   CircularProgress,
-  Snackbar,
-  Alert,
+  Typography,
+  Fade,
 } from "@mui/material";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import ErrorOutline from "@mui/icons-material/ErrorOutline";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
@@ -59,10 +60,6 @@ const SignIn = () => {
     setShowPassword((prev) => !prev);
   };
 
-  const handleCloseSnackbar = () => {
-    setError("");
-  };
-
   return (
     <>
       <Backdrop
@@ -74,26 +71,37 @@ const SignIn = () => {
 
       <Box
         sx={{
-          backgroundColor: "#f5f5f5",
+          background: "linear-gradient(135deg, #005a9f 30%, #e05a5a 100%)",
           minHeight: "100vh",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
+          padding: 2,
         }}
       >
-        <Container component="main" maxWidth="xs">
+        <Container component="main" maxWidth="sm">
+          {" "}
           <Box
             sx={{
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
+              mb: 4,
             }}
           >
             <Card
               sx={{
                 minWidth: "100%",
-                border: "1px solid #d3d3d3",
-                borderRadius: 2,
+                maxWidth: 500,
+                borderRadius: 3,
+                padding: 4,
+                backgroundColor: "#ffffff",
+                boxShadow: "0 8px 24px rgba(0, 90, 159, 0.3)",
+                border: "1px solid rgba(0, 90, 159, 0.2)",
+                transition: "transform 0.2s ease-in-out",
+                "&:hover": {
+                  transform: "translateY(-5px)",
+                },
               }}
             >
               <CardContent>
@@ -101,35 +109,48 @@ const SignIn = () => {
                   sx={{
                     display: "flex",
                     justifyContent: "center",
-                    mb: 2,
+                    mb: 3,
                   }}
                 >
                   <img
                     src="https://algofast.in/images/logo.png"
                     alt="Company Logo"
-                    style={{ width: "150px" }}
+                    style={{ width: "160px" }}
                   />
                 </Box>
 
-                <Box
-                  component="form"
-                  onSubmit={handleSubmit}
-                  noValidate
-                  autoComplete="off"
-                  sx={{ mt: 1 }}
-                >
+                <Box component="form" onSubmit={handleSubmit}>
                   <TextField
                     margin="normal"
                     required
                     fullWidth
-                    type="email"
-                    id="email"
-                    label="Email Address"
-                    name="email"
+                    type="username"
+                    id="username"
+                    label="Username"
+                    name="username"
                     autoComplete="off"
                     autoFocus
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    sx={{
+                      mb: 2,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 3,
+                        backgroundColor: "#f9f9f9",
+                        "& fieldset": {
+                          borderColor: "rgba(0, 90, 159, 0.3)",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "#005a9f",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#005a9f",
+                        },
+                      },
+                      "& label.Mui-focused": {
+                        color: "#005a9f",
+                      },
+                    }}
                   />
                   <TextField
                     margin="normal"
@@ -155,6 +176,25 @@ const SignIn = () => {
                         </InputAdornment>
                       ),
                     }}
+                    sx={{
+                      mb: 2,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 3,
+                        backgroundColor: "#f9f9f9",
+                        "& fieldset": {
+                          borderColor: "rgba(0, 90, 159, 0.3)",
+                        },
+                        "&:hover fieldset": {
+                          borderColor: "#005a9f",
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderColor: "#005a9f",
+                        },
+                      },
+                      "& label.Mui-focused": {
+                        color: "#005a9f",
+                      },
+                    }}
                   />
                   <Link
                     href="#"
@@ -162,10 +202,12 @@ const SignIn = () => {
                     sx={{
                       float: "right",
                       mt: 1,
-                      color: "#d32f2f",
+                      color: "#e05a5a",
                       textDecoration: "none",
+                      fontWeight: 500,
                       "&:hover": {
                         textDecoration: "underline",
+                        color: "#ff7676",
                       },
                     }}
                   >
@@ -175,31 +217,52 @@ const SignIn = () => {
                     type="submit"
                     fullWidth
                     variant="contained"
-                    sx={{ mt: 3, mb: 2 }}
+                    sx={{
+                      mt: 3,
+                      mb: 2,
+                      py: 1.5,
+                      fontWeight: "bold",
+                      backgroundColor: "#005a9f",
+                      color: "#fff",
+                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
+                      "&:hover": {
+                        backgroundColor: "#004080",
+                      },
+                    }}
                   >
                     Sign In
                   </Button>
                 </Box>
+
+                {error && (
+                  <Fade in={Boolean(error)} timeout={500}>
+                    <Box
+                      sx={{
+                        mt: 2,
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <ErrorOutline
+                        sx={{ mr: 1, color: "#e05a5a", fontSize: 24 }}
+                      />
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: "#e05a5a",
+                          fontWeight: 500,
+                        }}
+                      >
+                        {error}
+                      </Typography>
+                    </Box>
+                  </Fade>
+                )}
               </CardContent>
             </Card>
           </Box>
         </Container>
       </Box>
-
-      <Snackbar
-        open={Boolean(error)}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity="error"
-          sx={{ width: "100%" }}
-        >
-          {error}
-        </Alert>
-      </Snackbar>
     </>
   );
 };
