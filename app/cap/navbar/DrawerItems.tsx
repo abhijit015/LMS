@@ -25,7 +25,7 @@ const DrawerItems: React.FC<DrawerItemsProps> = ({ onClose }) => {
           <ListItemText primary="Products" />
         </ListItemButton>
       </Link>
-      <Link href="/cap/businessEntityList" passHref>
+      <Link href="/cap/businessEntity" passHref>
         <ListItemButton onClick={onClose}>
           <ListItemText primary="Business Entities" />
         </ListItemButton>
