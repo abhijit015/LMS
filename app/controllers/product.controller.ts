@@ -3,7 +3,31 @@
 import { productSchema } from '../zodschema/zodschema';
 import { productSchemaT } from '../models/models';
 import { getSession } from '../services/session.service';
-import { loadProductByIDFromDB,saveProductInDB, loadAllProductsFromDB, deleteProductByIDFromDB } from '../services/product.service';
+import {getProductIDByNameFromDB,saveProductLicenseParamsInDB, loadProductLicenseParamsFromDB,loadProductByIDFromDB,saveProductInDB, loadAllProductsFromDB, deleteProductByIDFromDB } from '../services/product.service';
+
+
+
+export async function getProductIDFromName(name: string) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return { status: false, data: "Session not available" };
+    }
+
+    const productID = await getProductIDByNameFromDB(name);  
+    console.log("productID : ",productID);
+    if (productID !== null) {  
+      return { status: true, data: productID };  
+    } else {
+      return { status: false, data: "Product not found" };
+    }
+  } catch (error) {
+    console.error("Error getting product ID from name:", error);
+    return { status: false, data: "Error: Unknown error occurred." };
+  }
+}
+
+
 
 
 export async function saveProduct(data: productSchemaT) {
@@ -52,6 +76,9 @@ export async function saveProduct(data: productSchemaT) {
 
   return result;
 }
+
+
+
 
 
 
@@ -128,4 +155,58 @@ export async function loadAllProducts() {
 
 }
 
+
+
+export async function loadProductLicenseParams(product_id:number) {
+   
+  try {
+    const session = await getSession();
+
+    if (!session) {
+      throw new Error('Session or database info not available');
+    }
+
+    const fields = await loadProductLicenseParamsFromDB(product_id);
+    return fields;
+
+  } 
+  
+  catch (error) {
+    console.error('Error loading product license params: ', error);
+    return null;
+  }
+
+}
+
+
+
+
+export async function saveLicenseFields(product_id:number,data: number[]) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return {
+        status: false,
+        data: [{ message: "Error: Session not found" }],
+      };
+    }
+
+    console.log("data : ",data)
+    const dbResult = await saveProductLicenseParamsInDB(product_id,data);
+
+    if (dbResult.affectedRows > 0) {
+      return { status: true, data: data };
+    } else {
+      return {
+        status: false,
+        data: "Failed to save license fields, no rows affected.",
+      };
+    }
+  } catch (e: any) {
+    return {
+      status: false,
+      data: [{ message: e.message || "Unknown error occurred." }],
+    };
+  }
+}
 
