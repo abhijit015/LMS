@@ -2,7 +2,6 @@ import type { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from "next-auth/providers/credentials";
 import { authenticateUser } from '../../../services/auth.service';
 
-
 export const options: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -28,27 +27,19 @@ export const options: NextAuthOptions = {
   ],
 
   callbacks: {
-
     async jwt({ user, token }) {
-
-      let userId: number = 0;
-
       if (user) {
-        userId = user.id as unknown as number;
-        console.log(user);
-        token.userid = userId;
+        token.userid = user.id as unknown as number;
       }
-
       return token;  
     },
 
     async session({ session, token }) {
       if (token) {
-        session.user.userId = token.userid as number;
+        session.user.userId = Number(token.userid);
       }
       return session;
     },
-
   },
 
   pages: {
@@ -58,7 +49,6 @@ export const options: NextAuthOptions = {
     strategy: "jwt",  
   },
   jwt: {
-    secret: process.env.JWT_SECRET,  
+    secret: process.env.NEXTAUTH_SECRET,  
   },
-
 };

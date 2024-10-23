@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Box, TextField, Button, Typography } from "@mui/material";
+import { Box, TextField, Typography } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import Layout from "../layout";
 
@@ -85,8 +85,10 @@ const rows = [
     weight: "250g",
     price: "1.5",
   },
+  // Add more rows as needed
 ];
 
+// Define columns for the DataGrid
 const columns: GridColDef[] = [
   {
     field: "label",
@@ -153,14 +155,15 @@ const columns: GridColDef[] = [
 const SimpleDataGridDropdown = () => {
   const [filterText, setFilterText] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<number | null>(null);
 
+  // Filter rows based on the text input
   const filteredRows = rows.filter((row) =>
     Object.values(row).some((value) =>
       String(value).toLowerCase().includes(filterText.toLowerCase())
     )
   );
 
+  // Handle focus and blur events
   const handleFocus = () => {
     if (filterText) {
       setShowDropdown(true);
@@ -168,72 +171,30 @@ const SimpleDataGridDropdown = () => {
   };
 
   const handleBlur = () => {
-    setTimeout(() => {
-      setShowDropdown(false);
-    }, 150);
+    setShowDropdown(false);
   };
 
-  const handleRowClick = (row: { id: number; label: string }) => {
-    setSelectedRow(row.id);
-    setFilterText(""); // Clear the filter text to hide the dropdown
-    alert(`Selected: ${row.label}`);
-  };
-
-  const debounce = (func: Function, delay: number) => {
-    let timeout: NodeJS.Timeout;
-    return (...args: any) => {
-      clearTimeout(timeout);
-      timeout = setTimeout(() => {
-        func(...args);
-      }, delay);
-    };
-  };
-
-  const debouncedSetFilterText = debounce((value: string) => {
-    setFilterText(value);
-  }, 300);
-
+  // Show dropdown when there's text
   useEffect(() => {
-    setShowDropdown(!!filterText);
-    if (!filterText) {
-      setSelectedRow(null);
+    if (filterText) {
+      setShowDropdown(true);
+    } else {
+      setShowDropdown(false);
     }
   }, [filterText]);
 
   return (
-    <Layout title={"Business Entities"}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+    <Layout title={"DataGrid Dropdown Example"}>
+      <Box sx={{ width: 600, mb: 2 }}>
         <TextField
           label="Search"
           variant="outlined"
+          fullWidth
           size="small"
-          sx={{ width: 300 }}
-          onChange={(e) => debouncedSetFilterText(e.target.value)}
+          onChange={(e) => setFilterText(e.target.value)}
           onFocus={handleFocus}
           onBlur={handleBlur}
         />
-        <Button
-          variant="contained"
-          sx={{ ml: 2 }}
-          disabled={filteredRows.length > 0}
-          onClick={() => alert("Search button clicked")}
-        >
-          Search
-        </Button>
-        {filterText && (
-          <Typography
-            variant="body2"
-            sx={{
-              ml: 2,
-              color: filteredRows.length > 0 ? "primary.main" : "error.main",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {filteredRows.length > 0
-              ? "Click on the business entity to view its details"
-              : "No records found. Enter a license number and press 'Search' to find business entities not linked to you."}
-          </Typography>
-        )}
       </Box>
       {showDropdown && filteredRows.length > 0 && (
         <div
@@ -247,21 +208,12 @@ const SimpleDataGridDropdown = () => {
           <DataGrid
             rows={filteredRows}
             columns={columns}
-            getRowClassName={(params) =>
-              params.id === selectedRow ? "selected-row" : ""
-            }
-            onCellClick={(params) => handleRowClick(params.row)}
+            onRowClick={() => setShowDropdown(false)}
             rowHeight={36}
             columnHeaderHeight={36}
           />
         </div>
       )}
-      <style jsx>{`
-        .selected-row {
-          background-color: #005a9f; /* primary color */
-          color: white;
-        }
-      `}</style>
     </Layout>
   );
 };

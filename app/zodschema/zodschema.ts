@@ -42,6 +42,15 @@ export const productSchema = z.object({
 });
 
 
+export const productParamSchema = z.object({
+  id: z.number().optional(),
+  param: z.string()
+    .trim()
+    .min(1, "Basis Cannot Be Blank"),
+  isNew: z.boolean().optional(),
+});
+
+
 export const dealerSchema = z.object({
   id: z.number().optional(),
   name: z.string()
@@ -50,7 +59,25 @@ export const dealerSchema = z.object({
     .max(255, "Name Cannot Exceed 255 Characters"),
   contact_num: z.string()
     .trim()
-    .max(2, "Contact Number Cannot Exceed 255 Characters")
+    .max(255, "Contact Number Cannot Exceed 255 Characters")
+    .optional(),
+  email: z.string()
+    .trim()
+    .max(255, "Email Cannot Exceed 255 Characters")
+    .optional(),
+});
+
+
+export const businessEntitySchema = z.object({
+  id: z.number(),
+  product_id: z.number(),
+  license_no: z.string()
+    .trim()
+    .min(1, "License Number Cannot Be Empty")
+    .max(8, "Name Cannot Exceed 255 Characters"),
+  contact_num: z.string()
+    .trim()
+    .max(255, "Contact Number Cannot Exceed 255 Characters")
     .optional(),
   email: z.string()
     .trim()

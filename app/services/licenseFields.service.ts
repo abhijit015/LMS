@@ -15,39 +15,6 @@ export async function loadLicenseFieldBasisFromDB() {
 }
 
 
-
-// export async function saveLicenseFieldsInDB(data: licenseFieldSchemaT[]) {
-
-//   console.log("data : ",data);
-
-//   try {
-//     const basisNames = [...new Set(data.map((item) => item.basis))];
-//     let qry = `SELECT id, name FROM license_field_basis WHERE name IN (${basisNames.map(() => '?').join(', ')})`;
-
-//     const basisResults = await executeQuery(qry, basisNames);
-//     const basisIdMap = new Map(
-//       basisResults.map((row: { id: number; name: string }) => [row.name, row.id])
-//     );
-
-//     qry = 'TRUNCATE TABLE license_fields';
-//     await executeQuery(qry);
-
-//     qry = `INSERT INTO license_fields (name, basis) VALUES ${data
-//       .map(() => "(?, ?)").join(", ")}`;
-
-//     const values = data.flatMap((item: licenseFieldSchemaT) => [
-//       item.name,
-//       basisIdMap.get(item.basis) || null,
-//     ]);
-
-//     const result = await executeQuery(qry, values);
-//     return result;
-//   } catch (error) {
-//     console.error("Error saving license fields:", error);
-//     throw error;
-//   }
-// }
-
 export async function saveLicenseFieldsInDB(data: licenseFieldSchemaT[]) {
   try {
     const truncateQry = 'TRUNCATE TABLE license_fields';
@@ -75,7 +42,7 @@ export async function saveLicenseFieldsInDB(data: licenseFieldSchemaT[]) {
       });
     }
 
-    const insertQry = `INSERT INTO license_fields (name, basis) VALUES ${data.map(() => "(?, ?)").join(", ")}`;
+    const insertQry = `INSERT INTO license_fields (name, license_field_basis_id) VALUES ${data.map(() => "(?, ?)").join(", ")}`;
     const values = data.flatMap((item: licenseFieldSchemaT) => [
       item.name,
       basisIdMap.get(item.basis) || null,
@@ -104,7 +71,7 @@ export async function loadAllLicenseFieldsFromDB() {
     const query = `
       SELECT lf.id, lf.name, lfb.name AS basis
       FROM license_fields lf
-      LEFT JOIN license_field_basis lfb ON lf.basis = lfb.id
+      LEFT JOIN license_field_basis lfb ON lf.license_field_basis_id = lfb.id
     `;
     
     const result = await executeQuery(query);

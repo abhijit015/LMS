@@ -4,7 +4,6 @@ import { dealerSchema } from '../zodschema/zodschema';
 import { dealerSchemaT } from '../models/models';
 import { getSession } from '../services/session.service';
 import { loadDealerByIDFromDB,saveDealerInDB, loadAllDealersFromDB, deleteDealerByIDFromDB } from '../services/dealer.service';
-import { CleaningServices } from '@mui/icons-material';
 
 
 export async function saveDealer(data: dealerSchemaT) {

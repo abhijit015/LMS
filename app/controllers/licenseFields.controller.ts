@@ -71,6 +71,7 @@ export async function saveLicenseFields(data: licenseFieldSchemaT[]) {
   }
 }
 
+
 export async function loadLicenseFields() {
   try {
     const session = await getSession();

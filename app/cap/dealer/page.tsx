@@ -82,8 +82,14 @@ const Dealers = () => {
     },
   ];
 
+
   const filteredDealers = dealers.filter((dealer) =>
-    dealer.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ["name", "contact_num", "email"].some((field) =>
+      dealer[field as keyof dealerSchemaT]
+        ?.toString()
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    )
   );
 
   useEffect(() => {
