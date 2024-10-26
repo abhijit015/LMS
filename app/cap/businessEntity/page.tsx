@@ -1,150 +1,45 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Box, TextField, Button, Typography } from "@mui/material";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  ClickAwayListener,
+} from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import Layout from "../layout";
-
-// Sample data for the DataGrid
-const rows = [
-  {
-    id: 1,
-    label: "Apple",
-    description: "A sweet fruit",
-    category: "Fruit",
-    color: "Red",
-    shape: "Round",
-    use: "Snack",
-    nutrient: "Vitamin C",
-    origin: "USA",
-    weight: "100g",
-    price: "1.2",
-  },
-  {
-    id: 2,
-    label: "Banana",
-    description: "A yellow fruit",
-    category: "Fruit",
-    color: "Yellow",
-    shape: "Long",
-    use: "Snack",
-    nutrient: "Potassium",
-    origin: "Ecuador",
-    weight: "118g",
-    price: "1.1",
-  },
-  {
-    id: 3,
-    label: "Carrot",
-    description: "An orange vegetable",
-    category: "Vegetable",
-    color: "Orange",
-    shape: "Long",
-    use: "Salad",
-    nutrient: "Vitamin A",
-    origin: "USA",
-    weight: "200g",
-    price: "0.9",
-  },
-  {
-    id: 4,
-    label: "Dates",
-    description: "A sweet dry fruit",
-    category: "Fruit",
-    color: "Brown",
-    shape: "Sweet",
-    use: "Dessert",
-    nutrient: "Fiber",
-    origin: "Egypt",
-    weight: "250g",
-    price: "2.8",
-  },
-  {
-    id: 5,
-    label: "Eggplant",
-    description: "A purple vegetable",
-    category: "Vegetable",
-    color: "Purple",
-    shape: "Round",
-    use: "Cooked",
-    nutrient: "Fiber",
-    origin: "Italy",
-    weight: "120g",
-    price: "0.8",
-  },
-  {
-    id: 6,
-    label: "Fig",
-    description: "A sweet fruit",
-    category: "Fruit",
-    color: "Purple",
-    shape: "Round",
-    use: "Dessert",
-    nutrient: "Calcium",
-    origin: "Turkey",
-    weight: "250g",
-    price: "1.5",
-  },
-];
+import { loadAllBusinessEntities } from "@/app/controllers/businessEntity.controller";
 
 const columns: GridColDef[] = [
   {
-    field: "label",
-    headerName: "Label",
+    field: "name",
+    headerName: "Name",
     flex: 1,
     renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
   },
   {
-    field: "description",
-    headerName: "Description",
+    field: "license_no",
+    headerName: "License No",
     flex: 1,
     renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
   },
   {
-    field: "category",
-    headerName: "Category",
+    field: "product_name",
+    headerName: "Product",
     flex: 1,
     renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
   },
   {
-    field: "color",
-    headerName: "Color",
+    field: "contact_num",
+    headerName: "Contact Number",
     flex: 1,
     renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
   },
   {
-    field: "shape",
-    headerName: "Shape",
-    flex: 1,
-    renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-  },
-  {
-    field: "use",
-    headerName: "Use",
-    flex: 1,
-    renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-  },
-  {
-    field: "nutrient",
-    headerName: "Nutrient",
-    flex: 1,
-    renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-  },
-  {
-    field: "origin",
-    headerName: "Origin",
-    flex: 1,
-    renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-  },
-  {
-    field: "weight",
-    headerName: "Weight",
-    flex: 1,
-    renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-  },
-  {
-    field: "price",
-    headerName: "Price ($)",
+    field: "email",
+    headerName: "Email",
     flex: 1,
     renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
   },
@@ -153,30 +48,33 @@ const columns: GridColDef[] = [
 const SimpleDataGridDropdown = () => {
   const [filterText, setFilterText] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [businessEntities, setBusinessEntities] = useState<any[]>([]);
   const [selectedRow, setSelectedRow] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const filteredRows = rows.filter((row) =>
-    Object.values(row).some((value) =>
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await loadAllBusinessEntities();
+      setBusinessEntities(data || []);
+    };
+    fetchData();
+  }, []);
+
+  const filteredRows = businessEntities.filter((entity) =>
+    Object.values(entity).some((value) =>
       String(value).toLowerCase().includes(filterText.toLowerCase())
     )
   );
 
   const handleFocus = () => {
-    if (filterText) {
-      setShowDropdown(true);
-    }
+    setShowDropdown(true);
   };
 
-  const handleBlur = () => {
-    setTimeout(() => {
-      setShowDropdown(false);
-    }, 150);
-  };
-
-  const handleRowClick = (row: { id: number; label: string }) => {
+  const handleRowClick = (row: { id: number; name: string }) => {
     setSelectedRow(row.id);
-    setFilterText(""); // Clear the filter text to hide the dropdown
-    alert(`Selected: ${row.label}`);
+    setFilterText(row.name);
+    setShowDropdown(false);
+    alert(`Selected: ${row.name}`);
   };
 
   const debounce = (func: Function, delay: number) => {
@@ -194,23 +92,31 @@ const SimpleDataGridDropdown = () => {
   }, 300);
 
   useEffect(() => {
-    setShowDropdown(!!filterText);
-    if (!filterText) {
-      setSelectedRow(null);
-    }
-  }, [filterText]);
+    setShowDropdown(!!filterText && filteredRows.length > 0);
+  }, [filterText, filteredRows]);
+
+  const handleClickAway = () => {
+    setShowDropdown(false);
+  };
 
   return (
     <Layout title={"Business Entities"}>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          mb: 2,
+          position: "relative",
+        }}
+      >
         <TextField
           label="Search"
           variant="outlined"
           size="small"
           sx={{ width: 300 }}
+          value={filterText}
           onChange={(e) => debouncedSetFilterText(e.target.value)}
           onFocus={handleFocus}
-          onBlur={handleBlur}
         />
         <Button
           variant="contained"
@@ -220,7 +126,7 @@ const SimpleDataGridDropdown = () => {
         >
           Search
         </Button>
-        {filterText && (
+        {filterText ? (
           <Typography
             variant="body2"
             sx={{
@@ -233,32 +139,55 @@ const SimpleDataGridDropdown = () => {
               ? "Click on the business entity to view its details"
               : "No records found. Enter a license number and press 'Search' to find business entities not linked to you."}
           </Typography>
+        ) : (
+          <Typography
+            variant="body2"
+            sx={{
+              ml: 2,
+              color: "primary.main",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Start typing to search for business entities
+          </Typography>
+        )}
+        {showDropdown && (
+          <ClickAwayListener onClickAway={handleClickAway}>
+            <Box
+              sx={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                width: "100%",
+                maxHeight: 300,
+                zIndex: 1,
+                border: "1px solid #ddd",
+                borderRadius: "4px",
+                boxShadow: "0px 4px 6px rgba(0,0,0,0.1)",
+                backgroundColor: "white",
+                mt: 1,
+              }}
+              ref={dropdownRef}
+            >
+              <DataGrid
+                rows={filteredRows}
+                columns={columns}
+                getRowClassName={(params) =>
+                  params.id === selectedRow ? "selected-row" : ""
+                }
+                onCellClick={(params) => handleRowClick(params.row)}
+                rowHeight={36}
+                columnHeaderHeight={36}
+                disableColumnMenu
+                hideFooter
+              />
+            </Box>
+          </ClickAwayListener>
         )}
       </Box>
-      {showDropdown && filteredRows.length > 0 && (
-        <div
-          style={{
-            height: 300,
-            width: "100%",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          <DataGrid
-            rows={filteredRows}
-            columns={columns}
-            getRowClassName={(params) =>
-              params.id === selectedRow ? "selected-row" : ""
-            }
-            onCellClick={(params) => handleRowClick(params.row)}
-            rowHeight={36}
-            columnHeaderHeight={36}
-          />
-        </div>
-      )}
       <style jsx>{`
         .selected-row {
-          background-color: #005a9f; /* primary color */
+          background-color: #005a9f;
           color: white;
         }
       `}</style>

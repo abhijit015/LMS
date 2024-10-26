@@ -215,7 +215,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
       open={open}
       onClose={handleClose}
       maxWidth="sm"
-      fullWidth
+      fullScreen
       PaperComponent={PaperComponent}
     >
       <DialogTitle
@@ -328,13 +328,10 @@ const ProductModal: React.FC<ProductModalProps> = ({
       />
       <ConfirmationDialog
         open={isConfirmationOpen}
+        message="Are you sure you want to save this product?"
         onClose={handleCloseConfirmation}
-        message={
-          productId
-            ? "Are you sure you want to modify this product?"
-            : "Are you sure you want to add this product?"
-        }
       />
+      {loading && <CircularProgress />}
     </Dialog>
   );
 };

@@ -49,7 +49,7 @@ export async function saveProductInDB(
 export async function deleteProductByIDFromDB(id: number) {
     try {
       let result = await executeQuery('DELETE FROM products WHERE id = ?', [id]);
-      result = await executeQuery('DELETE FROM product_license_param WHERE product_id = ?', [id]);
+      result = await executeQuery('DELETE FROM product_license_params WHERE product_id = ?', [id]);
       return result;
     } catch (error) {
         console.error("Error deleting product:", error);
@@ -91,7 +91,7 @@ export async function loadAllProductsFromDB() {
 
 export async function loadProductLicenseParamsFromDB(product_id:number) {
   try {
-    const query = `SELECT * FROM license_fields where id in (select license_field_id from product_license_param where product_id = ?)`;
+    const query = `SELECT * FROM license_fields where id in (select product_license_param_id from product_license_params where product_id = ?)`;
     const result = await executeQuery(query,[product_id]);
     
     console.log("loadProductLicenseParamsFromDB result :",result);
@@ -107,7 +107,7 @@ export async function loadProductLicenseParamsFromDB(product_id:number) {
 
 export async function saveProductLicenseParamsInDB(product_id: number, data: number[]) {
   try {
-    await executeQuery('DELETE FROM product_license_param WHERE product_id = ?', [product_id]);
+    await executeQuery('DELETE FROM product_license_params WHERE product_id = ?', [product_id]);
 
     if (data.length === 0) {
       return { 
@@ -119,7 +119,7 @@ export async function saveProductLicenseParamsInDB(product_id: number, data: num
 
     const values = data.map((licenseFieldId) => `(${product_id}, ${licenseFieldId})`).join(', ');
     console.log("values : ",values);
-    const insertQry = `INSERT INTO product_license_param (product_id, license_field_id) VALUES ${values}`;
+    const insertQry = `INSERT INTO product_license_params (product_id, product_license_param_id) VALUES ${values}`;
     console.log("insertQry : ",insertQry);
     const result = await executeQuery(insertQry);
 
