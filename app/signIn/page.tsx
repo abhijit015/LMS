@@ -1,269 +1,243 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import React, { useState } from "react";
 import {
   Button,
   TextField,
   Box,
-  Container,
-  Card,
-  CardContent,
+  Typography,
+  CircularProgress,
   InputAdornment,
   IconButton,
-  Link,
-  Backdrop,
-  CircularProgress,
-  Typography,
-  Fade,
 } from "@mui/material";
+import { loadUser, validateUser } from "../controllers/user.controller";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import MessageModal from "../cap/modalForms/ShowMsg";
+import { MSG_ERROR, MSG_NORMAL } from "../utils/constants";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import ErrorOutline from "@mui/icons-material/ErrorOutline";
 
-const SignIn = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+const SignIn: React.FC = () => {
+  const [errors, setErrors] = useState<{
+    username?: string;
+    password?: string;
+  }>({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [modal, setModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    type: number;
+  }>({
+    open: false,
+    title: "",
+    message: "",
+    type: MSG_NORMAL,
+  });
+  const [showPassword, setShowPassword] = useState(false);
+
   const router = useRouter();
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setError("");
-
-    if (!email || !password) {
-      setError("Both email and password are required.");
-      return;
+  const validateData = (username: string, password: string): boolean => {
+    const validationErrors: { username?: string; password?: string } = {};
+    if (!username.trim()) validationErrors.username = "Username is required";
+    if (!password.trim()) validationErrors.password = "Password is required";
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return false;
     }
+    setErrors({});
+    return true;
+  };
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const username: string = formData.get("username") as string;
+    const password: string = formData.get("password") as string;
+
+    if (!validateData(username, password)) return;
 
     setLoading(true);
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-
-    if (result?.error) {
-      setError(result.error);
-    } else {
-      router.push("/cap/dashboard");
+    try {
+      const validationResponse = await validateUser(username, password);
+      if (validationResponse.status) {
+        router.push("/cap/dashboard");
+      } else {
+        setModal({
+          open: true,
+          title: "Error",
+          message: validationResponse.message,
+          type: MSG_ERROR,
+        });
+      }
+    } catch (error) {
+      setModal({
+        open: true,
+        title: "Error",
+        message:
+          error instanceof Error ? error.message : "Error while signing in.",
+        type: MSG_ERROR,
+      });
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setLoading(false);
+  const handleModalClose = () => {
+    setModal((prevState) => ({ ...prevState, open: false }));
   };
 
   const handleClickShowPassword = () => {
-    setShowPassword((prev) => !prev);
+    setShowPassword(!showPassword);
   };
 
   return (
-    <>
-      <Backdrop
-        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
-        open={loading}
-      >
-        <CircularProgress color="inherit" />
-      </Backdrop>
-
-      <Box
-        sx={{
-          background: "linear-gradient(135deg, #005a9f 30%, #e05a5a 100%)",
-          minHeight: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 2,
-        }}
-      >
-        <Container component="main" maxWidth="sm">
-          {" "}
-          <Box
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        minHeight: "100vh",
+        backgroundColor: "#e8f0fe",
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            maxWidth: 400,
+            padding: 4,
+            backgroundColor: "#ffffff",
+            borderRadius: 3,
+            boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.15)",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: "0px 12px 32px rgba(0, 0, 0, 0.2)",
+            },
+          }}
+        >
+          <Typography
+            variant="h5"
             sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              mb: 4,
+              mb: 3,
+              fontWeight: "bold",
+              color: "#333",
+              fontSize: "1.6rem",
             }}
           >
-            <Card
+            Sign In
+          </Typography>
+          <TextField
+            variant="standard"
+            name="username"
+            label="Email or Phone"
+            fullWidth
+            size="medium"
+            autoComplete="off"
+            required
+            error={!!errors.username}
+            helperText={errors.username}
+            sx={{ mb: 2, borderRadius: 1 }}
+            autoFocus
+          />
+          <TextField
+            variant="standard"
+            name="password"
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            fullWidth
+            size="medium"
+            autoComplete="off"
+            required
+            error={!!errors.password}
+            helperText={errors.password}
+            sx={{ mb: 3, borderRadius: 1 }}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={handleClickShowPassword}
+                    edge="end"
+                    aria-label="toggle password visibility"
+                  >
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            disabled={loading}
+            sx={{
+              height: 48,
+              fontSize: "1rem",
+              fontWeight: "bold",
+              mb: 2,
+              borderRadius: 1,
+              backgroundColor: "#005a9f",
+              "&:hover": {
+                backgroundColor: "#004a87",
+              },
+            }}
+          >
+            {loading ? (
+              <CircularProgress size={24} sx={{ color: "white" }} />
+            ) : (
+              "Sign In"
+            )}
+          </Button>
+
+          <Link href="/forgot-password" passHref>
+            <Typography
+              variant="body2"
               sx={{
-                minWidth: "100%",
-                maxWidth: 500,
-                borderRadius: 3,
-                padding: 4,
-                backgroundColor: "#ffffff",
-                boxShadow: "0 8px 24px rgba(0, 90, 159, 0.3)",
-                border: "1px solid rgba(0, 90, 159, 0.2)",
-                transition: "transform 0.2s ease-in-out",
-                "&:hover": {
-                  transform: "translateY(-5px)",
-                },
+                color: "#005a9f",
+                fontWeight: "bold",
+                cursor: "pointer",
+                textDecoration: "underline",
+                mb: 2,
               }}
             >
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    mb: 3,
-                  }}
-                >
-                  <img
-                    src="https://algofast.in/images/logo.png"
-                    alt="Company Logo"
-                    style={{ width: "160px" }}
-                  />
-                </Box>
+              Forgot Password?
+            </Typography>
+          </Link>
 
-                <Box component="form" onSubmit={handleSubmit}>
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    type="username"
-                    id="username"
-                    label="Username"
-                    name="username"
-                    autoComplete="off"
-                    autoFocus
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    sx={{
-                      mb: 2,
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: 3,
-                        backgroundColor: "#f9f9f9",
-                        "& fieldset": {
-                          borderColor: "rgba(0, 90, 159, 0.3)",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#005a9f",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#005a9f",
-                        },
-                      },
-                      "& label.Mui-focused": {
-                        color: "#005a9f",
-                      },
-                    }}
-                  />
-                  <TextField
-                    margin="normal"
-                    required
-                    fullWidth
-                    name="password"
-                    label="Password"
-                    type={showPassword ? "text" : "password"}
-                    id="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={handleClickShowPassword}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{
-                      mb: 2,
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: 3,
-                        backgroundColor: "#f9f9f9",
-                        "& fieldset": {
-                          borderColor: "rgba(0, 90, 159, 0.3)",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "#005a9f",
-                        },
-                        "&.Mui-focused fieldset": {
-                          borderColor: "#005a9f",
-                        },
-                      },
-                      "& label.Mui-focused": {
-                        color: "#005a9f",
-                      },
-                    }}
-                  />
-                  <Link
-                    href="#"
-                    variant="body2"
-                    sx={{
-                      float: "right",
-                      mt: 1,
-                      color: "#e05a5a",
-                      textDecoration: "none",
-                      fontWeight: 500,
-                      "&:hover": {
-                        textDecoration: "underline",
-                        color: "#ff7676",
-                      },
-                    }}
-                  >
-                    Forgot Password?
-                  </Link>
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    sx={{
-                      mt: 3,
-                      mb: 2,
-                      py: 1.5,
-                      fontWeight: "bold",
-                      backgroundColor: "#005a9f",
-                      color: "#fff",
-                      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                      "&:hover": {
-                        backgroundColor: "#004080",
-                      },
-                    }}
-                  >
-                    Sign In
-                  </Button>
-                </Box>
+          <Typography variant="body2" sx={{ mt: 2, color: "#555" }}>
+            Don't have an account?{" "}
+            <Link href="/signUp" passHref>
+              <Typography
+                component="span"
+                sx={{
+                  color: "#005a9f",
+                  fontWeight: "bold",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                }}
+              >
+                Sign Up
+              </Typography>
+            </Link>
+          </Typography>
+        </Box>
+      </form>
 
-                {error && (
-                  <Fade in={Boolean(error)} timeout={500}>
-                    <Box
-                      sx={{
-                        mt: 2,
-                        display: "flex",
-                        alignItems: "center",
-                      }}
-                    >
-                      <ErrorOutline
-                        sx={{ mr: 1, color: "#e05a5a", fontSize: 24 }}
-                      />
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: "#e05a5a",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {error}
-                      </Typography>
-                    </Box>
-                  </Fade>
-                )}
-              </CardContent>
-            </Card>
-          </Box>
-        </Container>
-      </Box>
-    </>
+      <MessageModal
+        open={modal.open}
+        onClose={handleModalClose}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
+    </Box>
   );
 };
 

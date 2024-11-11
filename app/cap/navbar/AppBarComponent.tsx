@@ -1,4 +1,5 @@
-// AppBarComponent.tsx
+"use client";
+
 import {
   AppBar,
   Toolbar,
@@ -7,19 +8,25 @@ import {
   Menu,
   MenuItem,
   Drawer,
+  Backdrop,
+  CircularProgress,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import { useState } from "react";
-import { signOut } from "next-auth/react";
-import Link from "next/link";
 import DrawerItems from "./DrawerItems";
+import { clearCookies } from "@/app/controllers/cookies.controller";
+import { redirect } from "next/navigation";
+import { userSchemaT } from "@/app/utils/models";
 
-const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
+const AppBarComponent: React.FC<{
+  title: string;
+  userData: userSchemaT | null;
+}> = ({ title, userData }) => {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
-  const username = "Abhijit Gupta";
 
   const handleDropdownClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -30,7 +37,19 @@ const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
   };
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: "/" });
+    setLoading(true);
+    await clearCookies();
+    redirect("/");
+  };
+
+  const handleProfile = async () => {
+    setLoading(true);
+    redirect("/cap/profile");
+  };
+
+  const handlePassword = async () => {
+    setLoading(true);
+    redirect("/cap/password");
   };
 
   const handleDrawerToggle = () => {
@@ -41,7 +60,9 @@ const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
     <>
       <AppBar
         position="fixed"
-        sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        sx={{
+          zIndex: (theme) => theme.zIndex.drawer + 1,
+        }}
       >
         <Toolbar>
           <IconButton
@@ -68,8 +89,7 @@ const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
               alignItems: "center",
             }}
           >
-            {username}
-            <ArrowDropDownIcon />
+            {userData?.display_name} <ArrowDropDownIcon />
           </Typography>
 
           <Menu
@@ -79,9 +99,8 @@ const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
           >
-            <MenuItem onClick={handleDropdownClose}>Profile</MenuItem>
-            <MenuItem onClick={handleDropdownClose}>Settings</MenuItem>
-            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+            <MenuItem onClick={handleProfile}>My Profile</MenuItem>
+            <MenuItem onClick={handleLogout}>Sign Out</MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>
@@ -102,8 +121,15 @@ const AppBarComponent: React.FC<{ title: string }> = ({ title }) => {
         onClose={handleDrawerToggle}
       >
         <Toolbar />
-        <DrawerItems onClose={handleDrawerToggle} />
+        <DrawerItems onClose={handleDrawerToggle} userData={userData} />
       </Drawer>
+
+      <Backdrop
+        sx={{ color: "#fff", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={loading}
+      >
+        <CircularProgress color="inherit" />
+      </Backdrop>
     </>
   );
 };

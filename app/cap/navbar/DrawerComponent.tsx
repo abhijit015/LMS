@@ -1,6 +1,3 @@
-// DrawerComponent.tsx
-"use client";
-
 import { Drawer, Toolbar } from "@mui/material";
 
 interface DrawerComponentProps {

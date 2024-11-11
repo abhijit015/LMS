@@ -1,136 +1,153 @@
-import { productSchemaT } from '../models/models';
-import {executeQuery} from "../utils/db"
+import { productSchemaT, userSchemaT } from "../utils/models";
+import { executeQuery } from "../utils/db";
+import { deleteUserFromDB, saveUserInDB } from "./user.service";
 
+export async function loadProductFromDB(id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let productData = null;
 
-export async function getProductIDByNameFromDB(name: string): Promise<number | null> {
   try {
-    const query = `SELECT ID FROM products WHERE name = ?`;
-    const result = await executeQuery(query, [name]);
+    if (proceed) {
+      const query = `SELECT * FROM products WHERE id = ?`;
+      const result = await executeQuery(query, [id, id]);
 
-    return result[0].ID;
-  } catch (error) {
-    console.error("Error fetching product ID by name:", error);
-    throw error;   
-  }
-}
-
-
-
-export async function saveProductInDB(
-  data: productSchemaT
-) {
-  try {
-    const query = `
-      INSERT INTO products (id, name)
-      VALUES (?, ?)
-      ON DUPLICATE KEY UPDATE
-        name = VALUES(name);
-    `;
-
-    const values = [
-      data.id || null,
-      data.name,
-    ];
-
-    const result = await executeQuery(query,values);
-
-    return result;
-
-  } catch (error) {
-    console.error("Error saving product:", error);
-    throw error;
-  }
-}
-
-
-
-
-
-export async function deleteProductByIDFromDB(id: number) {
-    try {
-      let result = await executeQuery('DELETE FROM products WHERE id = ?', [id]);
-      result = await executeQuery('DELETE FROM product_license_params WHERE product_id = ?', [id]);
-      return result;
-    } catch (error) {
-        console.error("Error deleting product:", error);
-        throw error;
+      if (result.length > 0) {
+        productData = result[0];
+      } else {
+        proceed = false;
+        errMsg = "Product not found.";
+      }
     }
-  }
-
-
-
-  export async function loadProductByIDFromDB(id:number) {
-    try {
-      const query = `SELECT * FROM products where id=?`;
-      const result = await executeQuery(query,[id]);
-  
-      return result;
-  
-    } catch (error) {
-      console.error("Error loading product:", error);
-      throw error;
-    }
-  }
-  
-
-
-export async function loadAllProductsFromDB() {
-  try {
-    const query = `SELECT * FROM products`;
-    const result = await executeQuery(query);
-    
-    return result;
-
-  } catch (error) {
-    console.error("Error loading products:", error);
-    throw error;
-  }
-}
-
-
-
-export async function loadProductLicenseParamsFromDB(product_id:number) {
-  try {
-    const query = `SELECT * FROM license_fields where id in (select product_license_param_id from product_license_params where product_id = ?)`;
-    const result = await executeQuery(query,[product_id]);
-    
-    console.log("loadProductLicenseParamsFromDB result :",result);
-    return result;
-
-  } catch (error) {
-    console.error("Error loading products license params :", error);
-    throw error;
-  }
-}
-
-
-
-export async function saveProductLicenseParamsInDB(product_id: number, data: number[]) {
-  try {
-    await executeQuery('DELETE FROM product_license_params WHERE product_id = ?', [product_id]);
-
-    if (data.length === 0) {
-      return { 
-        affectedRows: 1,
-        insertId: null,
-        message: "License params deleted for the specified product_id." 
-      };
-    }
-
-    const values = data.map((licenseFieldId) => `(${product_id}, ${licenseFieldId})`).join(', ');
-    console.log("values : ",values);
-    const insertQry = `INSERT INTO product_license_params (product_id, product_license_param_id) VALUES ${values}`;
-    console.log("insertQry : ",insertQry);
-    const result = await executeQuery(insertQry);
 
     return {
-      affectedRows: result.affectedRows,
-      message: "License params saved successfully."
+      status: proceed,
+      message: proceed ? "Product loaded successfully." : errMsg,
+      data: productData,
     };
   } catch (error) {
-    throw new Error('Failed to save product license parameters.');
+    console.error("Error loading product:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Error loading product.",
+      data: null,
+    };
   }
 }
 
+export async function loadProductListFromDB(client_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+  try {
+    if (proceed) {
+      query = `SELECT * from products where client_id=? order by name`;
+      result = await executeQuery(query, [client_id]);
+    }
 
+    return {
+      status: proceed,
+      message: proceed ? "Products loaded successfully." : errMsg,
+      data: proceed ? result : null,
+    };
+  } catch (error) {
+    console.error("Error loading products:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Error loading products.",
+      data: null,
+    };
+  }
+}
 
+export async function deleteProductFromDB(productId: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+
+  try {
+    if (proceed) {
+      result = await executeQuery("delete from products where id=?", [
+        productId,
+      ]);
+      if (result.affectedRows <= 0) {
+        proceed = false;
+        errMsg = "Unable to delete product.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Product deleted successfully." : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Error deleting product.",
+      data: null,
+    };
+  }
+}
+
+export async function saveProductInDB(productData: productSchemaT) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+
+  try {
+    if (proceed) {
+      let query: string;
+      let values: any[];
+
+      if (productData.id) {
+        query = `
+            UPDATE products SET
+              name = ?,
+              updated_by = ?
+            WHERE id = ?
+          `;
+        values = [productData.name, productData.updated_by, productData.id];
+      } else {
+        query = `
+            INSERT INTO products (name,client_id,created_by,updated_by)
+            VALUES (?,?,?,?)
+          `;
+        values = [
+          productData.name,
+          productData.client_id,
+          productData.created_by,
+          productData.updated_by,
+        ];
+      }
+
+      const result = await executeQuery(query, values);
+
+      if (result.affectedRows < 0) {
+        proceed = false;
+        errMsg = "Error saving client.";
+      } else {
+        if (!productData.id) {
+          productData.id = result.insertId;
+        }
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Product saved successfully." : errMsg,
+      data: proceed ? productData.id : null,
+    };
+  } catch (error) {
+    console.error("Error saving product:", error);
+    return {
+      status: false,
+      message: error instanceof Error ? error.message : "Error saving product.",
+      data: null,
+    };
+  }
+}

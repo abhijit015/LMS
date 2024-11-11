@@ -1,8 +1,11 @@
-"use client";
-
+import React from "react";
 import { Box } from "@mui/material";
 
-const MainContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface MainContentProps {
+  children: React.ReactNode;
+}
+
+const MainContent: React.FC<MainContentProps> = ({ children }) => {
   return (
     <Box
       component="main"
@@ -10,9 +13,10 @@ const MainContent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       aria-label="Main content"
       sx={{
         flexGrow: 1,
-        bgcolor: (theme) => theme.palette.background.default,
         p: (theme) => theme.spacing(3),
         mt: (theme) => theme.spacing(3),
+        backgroundColor: "#fafafa",
+        minHeight: "100vh",
       }}
     >
       {children}

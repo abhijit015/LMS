@@ -1,131 +1,344 @@
-'use server';
+"use server";
 
-import { dealerSchema } from '../zodschema/zodschema';
-import { dealerSchemaT } from '../models/models';
-import { getSession } from '../services/session.service';
-import { loadDealerByIDFromDB,saveDealerInDB, loadAllDealersFromDB, deleteDealerByIDFromDB } from '../services/dealer.service';
+import { dealerSchema } from "../utils/zodschema";
+import { dealerSchemaT, userSchemaT } from "../utils/models";
+import {
+  deleteDealerFromDB,
+  loadDealerFromDB,
+  loadDealerListFromDB,
+  saveDealerInDB,
+} from "../services/dealer.service";
+import {
+  canUserBeDeleted,
+  getCurrentUserDet,
+  setUserDataB4Saving,
+} from "./user.controller";
+import { canUserBeSaved } from "./user.controller";
+import { getAllUserId4Dealer, saveUserInDB } from "../services/user.service";
+import { getUserIdFromCookies } from "./cookies.controller";
 
-
-export async function saveDealer(data: dealerSchemaT) {
+export async function setDealerDataB4Saving(
+  dealerData: dealerSchemaT,
+  userData: userSchemaT
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
   let result;
-  let proceed = true;
+  let currentUserData;
 
   try {
-
     if (proceed) {
-      const session = await getSession();
-      if (!session) {
-        return {
-          status: false,
-          data: [{ message: "Error: Session not found" }],
-        };
+      result = await setUserDataB4Saving(userData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
       }
     }
 
     if (proceed) {
-      const parsed = dealerSchema.safeParse(data);
+      result = await getCurrentUserDet();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        currentUserData = result.data;
+      }
+    }
 
-      if (!parsed.success) {
-        const errorState = parsed.error.issues.map(issue => ({
-          path: issue.path,
-          message: issue.message,
-        }));
-        return { status: false, data: errorState };
+    if (proceed) {
+      if (!dealerData.id) {
+        dealerData.created_by = currentUserData.id;
+        dealerData.client_id = currentUserData.client_id;
       }
 
-      if (parsed.success && parsed.data) {
-        const dbResult = await saveDealerInDB(parsed.data);
+      dealerData.updated_by = currentUserData.id;
+    }
 
-        if (dbResult.affectedRows > 0) {
-          result = { status: true, data: parsed.data };
-        } else {
-          result = { status: false, data: "Failed to save dealer, no rows affected." };
+    console.log("currentUserData : ", currentUserData);
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    console.error("Error while setting dealer data before saving :", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function saveDealer(
+  dealerData: dealerSchemaT,
+  userData: userSchemaT
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await canDealerBeSaved(dealerData, userData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await setDealerDataB4Saving(dealerData, userData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await saveDealerInDB(dealerData, userData);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    console.error("Error saving dealer:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function canDealerBeSaved(
+  dealerData: dealerSchemaT,
+  userData: userSchemaT
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+
+  try {
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
+    }
+
+    if (proceed) {
+      const result = await canUserBeSaved(userData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      if (!dealerData) {
+        proceed = false;
+        errMsg = "Dealer Data cannot be null.";
+      }
+    }
+
+    if (proceed) {
+      const parsed = dealerSchema.safeParse(dealerData);
+
+      if (!parsed.success) {
+        errMsg = parsed.error.issues
+          .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+          .join("; ");
+        proceed = false;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function deleteDealer(dealerID: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+
+  try {
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
+    }
+
+    if (proceed) {
+      const result = await canDealerBeDeleted(dealerID);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      const result = await deleteDealerFromDB(dealerID);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function canDealerBeDeleted(dealerID: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  try {
+    if (proceed) {
+      result = await getAllUserId4Dealer(dealerID);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed && result && Array.isArray(result.data)) {
+      for (const userId of result.data) {
+        const canDeleteResult = await canUserBeDeleted(userId);
+        if (!canDeleteResult.status) {
+          proceed = false;
+          errMsg = canDeleteResult.message;
+          break;
         }
       }
     }
-  } catch (e: any) {
-    result = {
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
       status: false,
-      data: [{  message: e.message || "Unknown error occurred." }],
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
     };
   }
-
-  return result;
 }
 
+export async function loadDealerList() {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let userData;
 
-
-
-
-export async function deleteDealerByID(id: number) {
-    try {
-      const session = await getSession();
-      if (!session) {
-        return { status: false, data: "Session not available" };
-      }
-  
-      const dbResult = await deleteDealerByIDFromDB(id);
-  
-      if (dbResult.affectedRows > 0) {
-        return { status: true };
-      } else {
-        return { status: false, data: "Error deleting dealer" };
-      }
-    } catch (e) {
-      console.error("Error in deleteDealerByID controller:", e);
-      return {
-         status: false, 
-        data: "Error: Unknown Error" 
-      };
-    }
-  }
-
-
-
-  export async function loadDealerByID(id:number) {
-   
-    try {
-      const session = await getSession();
-      
-      if (!session) {
-        return { status: false, data: "Session not available" };
-      }
-  
-      const fields = await loadDealerByIDFromDB(id);
-      if (fields.length > 0) {
-        return { status: true, data: fields[0] };
-      } else {
-        return { status: false, data: "Dealer not found" };
-      }
-    } 
-    
-    catch (error) {
-      return { status: false, data: "Error loading dealer: " + error };
-    }
-  }  
-  
-
-
-
-export async function loadAllDealers() {
-   
   try {
-    const session = await getSession();
-
-    if (!session) {
-      throw new Error('Session or database info not available');
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
     }
 
-    const fields = await loadAllDealersFromDB();
-    return fields;
+    if (proceed) {
+      result = await getCurrentUserDet();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        userData = result.data;
+      }
+    }
 
-  } 
-  
-  catch (error) {
-    console.error('Error loading dealer:', error);
-    return null;
+    if (proceed) {
+      result = await loadDealerListFromDB(userData.client_id);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
   }
-
 }
 
+export async function loadDealer(dealer_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
 
+  try {
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
+    }
+
+    if (proceed) {
+      result = await loadDealerFromDB(dealer_id as number);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}

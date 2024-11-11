@@ -1,212 +1,292 @@
-'use server';
+"use server";
 
-import { productSchema } from '../zodschema/zodschema';
-import { productSchemaT } from '../models/models';
-import { getSession } from '../services/session.service';
-import {getProductIDByNameFromDB,saveProductLicenseParamsInDB, loadProductLicenseParamsFromDB,loadProductByIDFromDB,saveProductInDB, loadAllProductsFromDB, deleteProductByIDFromDB } from '../services/product.service';
+import { productSchema } from "../utils/zodschema";
+import { productSchemaT } from "../utils/models";
+import {
+  deleteProductFromDB,
+  loadProductFromDB,
+  loadProductListFromDB,
+  saveProductInDB,
+} from "../services/product.service";
+import { getCurrentUserDet } from "./user.controller";
+import { getUserIdFromCookies } from "./cookies.controller";
 
-
-
-export async function getProductIDFromName(name: string) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return { status: false, data: "Session not available" };
-    }
-
-    const productID = await getProductIDByNameFromDB(name);  
-    console.log("productID : ",productID);
-    if (productID !== null) {  
-      return { status: true, data: productID };  
-    } else {
-      return { status: false, data: "Product not found" };
-    }
-  } catch (error) {
-    console.error("Error getting product ID from name:", error);
-    return { status: false, data: "Error: Unknown error occurred." };
-  }
-}
-
-
-
-
-export async function saveProduct(data: productSchemaT) {
+export async function setProductDataB4Saving(productData: productSchemaT) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let userData;
   let result;
-  let proceed = true;
 
   try {
-
     if (proceed) {
-      const session = await getSession();
-      if (!session) {
-        return {
-          status: false,
-          data: [{ message: "Error: Session not found" }],
-        };
+      result = await getCurrentUserDet();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        userData = result.data;
       }
     }
 
     if (proceed) {
-      const parsed = productSchema.safeParse(data);
-
-      if (!parsed.success) {
-        const errorState = parsed.error.issues.map(issue => ({
-          path: issue.path,
-          message: issue.message,
-        }));
-        return { status: false, data: errorState };
+      if (!productData.id) {
+        productData.created_by = userData.id;
+        productData.client_id = userData.client_id;
       }
 
-      if (parsed.success && parsed.data) {
-        const dbResult = await saveProductInDB(parsed.data);
-
-        if (dbResult.affectedRows > 0) {
-          result = { status: true, data: parsed.data };
-        } else {
-          result = { status: false, data: "Failed to save product, no rows affected." };
-        }
-      }
+      productData.updated_by = userData.id;
     }
-  } catch (e: any) {
-    result = {
-      status: false,
-      data: [{  message: e.message || "Unknown error occurred." }],
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
     };
-  }
-
-  return result;
-}
-
-
-
-
-
-
-
-
-export async function deleteProductByID(id: number) {
-    try {
-      const session = await getSession();
-      if (!session) {
-        return { status: false, data: "Session not available" };
-      }
-  
-      const dbResult = await deleteProductByIDFromDB(id);
-  
-      if (dbResult.affectedRows > 0) {
-        return { status: true };
-      } else {
-        return { status: false, data: "Error deleting product" };
-      }
-    } catch (e) {
-      console.error("Error in deleteProductByID controller:", e);
-      return {
-         status: false, 
-        data: "Error: Unknown Error" 
-      };
-    }
-  }
-
-
-
-  export async function loadProductByID(id:number) {
-   
-    try {
-      const session = await getSession();
-      
-      if (!session) {
-        return { status: false, data: "Session not available" };
-      }
-  
-      const fields = await loadProductByIDFromDB(id);
-      if (fields.length > 0) {
-        return { status: true, data: fields[0] };
-      } else {
-        return { status: false, data: "Product not found" };
-      }
-    } 
-    
-    catch (error) {
-      return { status: false, data: "Error loading product: " + error };
-    }
-  }  
-  
-
-
-
-export async function loadAllProducts() {
-   
-  try {
-    const session = await getSession();
-
-    if (!session) {
-      throw new Error('Session or database info not available');
-    }
-
-    const fields = await loadAllProductsFromDB();
-    return fields;
-
-  } 
-  
-  catch (error) {
-    console.error('Error loading product:', error);
-    return null;
-  }
-
-}
-
-
-
-export async function loadProductLicenseParams(product_id:number) {
-   
-  try {
-    const session = await getSession();
-
-    if (!session) {
-      throw new Error('Session or database info not available');
-    }
-
-    const fields = await loadProductLicenseParamsFromDB(product_id);
-    return fields;
-
-  } 
-  
-  catch (error) {
-    console.error('Error loading product license params: ', error);
-    return null;
-  }
-
-}
-
-
-
-
-export async function saveLicenseFields(product_id:number,data: number[]) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return {
-        status: false,
-        data: [{ message: "Error: Session not found" }],
-      };
-    }
-
-    console.log("data : ",data)
-    const dbResult = await saveProductLicenseParamsInDB(product_id,data);
-
-    if (dbResult.affectedRows > 0) {
-      return { status: true, data: data };
-    } else {
-      return {
-        status: false,
-        data: "Failed to save license fields, no rows affected.",
-      };
-    }
-  } catch (e: any) {
+  } catch (error) {
+    console.error("Error while setting product data before saving :", error);
     return {
       status: false,
-      data: [{ message: e.message || "Unknown error occurred." }],
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
     };
   }
 }
 
+export async function saveProduct(productData: productSchemaT) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await canProductBeSaved(productData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await setProductDataB4Saving(productData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await saveProductInDB(productData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    console.error("Error saving product:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function canProductBeSaved(productData: productSchemaT) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+
+  try {
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
+    }
+
+    if (proceed) {
+      if (!productData) {
+        proceed = false;
+        errMsg = "Product Data cannot be null.";
+      }
+    }
+
+    if (proceed) {
+      const parsed = productSchema.safeParse(productData);
+
+      if (!parsed.success) {
+        errMsg = parsed.error.issues
+          .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+          .join("; ");
+        proceed = false;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function deleteProduct(productID: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+
+  try {
+    if (proceed) {
+      const result = await canProductBeDeleted(productID);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      const result = await deleteProductFromDB(productID);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function canProductBeDeleted(productID: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  try {
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadProduct(product_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let userId;
+
+  try {
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
+    }
+
+    if (proceed) {
+      result = await loadProductFromDB(product_id as number);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadProductList() {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let userData;
+
+  try {
+    if (proceed) {
+      if (!(await getUserIdFromCookies())) {
+        proceed = false;
+        errMsg = "Session expired. Please login again.";
+      }
+    }
+
+    if (proceed) {
+      result = await getCurrentUserDet();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        userData = result.data;
+      }
+    }
+
+    if (proceed) {
+      result = await loadProductListFromDB(userData.client_id as number);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}

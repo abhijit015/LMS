@@ -1,7 +1,7 @@
 import localFont from "next/font/local";
 import "./globals.css";
-import { Metadata } from "next";
-import Head from "next/head";
+import { Metadata, Viewport } from "next";
+import { userSchemaT } from "./utils/models";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -15,8 +15,15 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "",
-  description: "",
+  title: "LMS",
+  description: "License Management System",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -26,9 +33,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <Head>
+      <head>
+        <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

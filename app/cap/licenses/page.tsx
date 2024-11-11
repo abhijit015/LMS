@@ -6,7 +6,7 @@ import { MSG_NORMAL } from "@/app/utils/constants";
 import ConfirmationModal from "../modalForms/AskYesNo";
 import MessageModal from "../modalForms/ShowMsg";
 
-const Dashboard = () => {
+const Licenses = () => {
   const [loading, setLoading] = useState(false);
 
   const [messageModal, setMessageModal] = useState({
@@ -46,29 +46,7 @@ const Dashboard = () => {
   };
 
   return (
-    <Layout title="Dashboard" loading={loading}>
-      <h1>Welcome to the Dashboard!</h1>
-      <button
-        onClick={() =>
-          showConfirmation(
-            "Confirm Action",
-            "Are you sure you want to proceed?",
-            () => {
-              console.log("Confirmed!");
-            }
-          )
-        }
-      >
-        Show Confirmation
-      </button>
-      <button
-        onClick={() =>
-          showMessage("Notice", "This is an important message.", MSG_NORMAL)
-        }
-      >
-        Show Message
-      </button>
-
+    <Layout title="Licenses" loading={loading}>
       <ConfirmationModal
         open={confirmationModal.open}
         onClose={() =>
@@ -100,4 +78,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Licenses;
