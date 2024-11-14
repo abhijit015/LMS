@@ -64,7 +64,6 @@ const UserModal: React.FC<UserModalProps> = ({
 
       try {
         if (proceed && userId) {
-        
           result = await loadUser(userId);
           if (result.status) {
             setUserData(result.data as userSchemaT);
@@ -74,7 +73,6 @@ const UserModal: React.FC<UserModalProps> = ({
           }
         }
 
-       
         if (!proceed) {
           setMessageModal({
             open: true,
@@ -91,18 +89,18 @@ const UserModal: React.FC<UserModalProps> = ({
           type: MSG_NORMAL,
         });
       } finally {
-        setLoading(false); 
+        setLoading(false);
       }
     };
 
     if (open && !hasLoadedData.current) {
-      setLoading(true);  
-      fetchUserData();  
-      hasLoadedData.current = true;  
+      setLoading(true);
+      fetchUserData();
+      hasLoadedData.current = true;
     } else if (!open) {
-      setUserData(null);  
-      setErrors({});  
-      hasLoadedData.current = false; 
+      setUserData(null);
+      setErrors({});
+      hasLoadedData.current = false;
     }
   }, [userId, open]);
 
@@ -193,7 +191,7 @@ const UserModal: React.FC<UserModalProps> = ({
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 320,
+            width: "25%",
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 4,

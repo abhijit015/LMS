@@ -9,10 +9,8 @@ const DrawerComponent: React.FC<DrawerComponentProps> = ({ open, onClose }) => {
   return (
     <Drawer
       sx={{
-        width: 240,
         flexShrink: 0,
         "& .MuiDrawer-paper": {
-          width: 240,
           boxSizing: "border-box",
         },
       }}

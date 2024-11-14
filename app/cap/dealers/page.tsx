@@ -22,6 +22,8 @@ import {
 import ConfirmationModal from "../modalForms/AskYesNo";
 import MessageModal from "../modalForms/ShowMsg";
 import DealerModal from "../modalForms/Dealer";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 
 interface DealerList {
   id: number;
@@ -82,7 +84,7 @@ const Dealers = () => {
             disabled={loading}
             sx={{ color: "error.main" }}
           >
-            <DeleteIcon />
+            <DeleteOutlineIcon />
           </IconButton>
         </>
       ),
@@ -197,52 +199,47 @@ const Dealers = () => {
         sx={{
           height: "auto",
           borderRadius: 2,
+          border: "1px solid #fafafa",
+          boxShadow: "none",
         }}
       >
         <CardContent>
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
             <TextField
               label="Search"
               value={searchQuery}
               onChange={handleSearchChange}
               autoComplete="off"
               size="small"
-              sx={{ width: "450px" }}
               InputProps={{
                 startAdornment: (
-                  <InputAdornment position="start">
+                  <InputAdornment position="end">
                     <SearchIcon />
                   </InputAdornment>
                 ),
               }}
             />
-            <Button
-              variant="contained"
+            <IconButton
               onClick={handleAddDealer}
               disabled={loading}
               size="small"
+              sx={{ mr: 1, color: "primary.main" }}
             >
-              Add Dealer
-            </Button>
+              <AddCircleIcon />
+            </IconButton>
           </Box>
-          <Box sx={{ height: "auto", width: "100%" }}>
+          <Box sx={{ height: "auto" }}>
             <DataGrid
               rows={filteredDealers}
               columns={columns}
-              rowHeight={45}
-              columnHeaderHeight={45}
+              rowHeight={36}
+              columnHeaderHeight={36}
               pageSizeOptions={[10, 25, 50]}
               initialState={{
                 pagination: { paginationModel: { pageSize: 10 } },
               }}
               sx={{
                 "& .MuiDataGrid-cell": {
-                  border: "none",
-                },
-                "& .MuiDataGrid-columnHeaders": {
-                  borderBottom: "none",
-                },
-                "& .MuiDataGrid-root": {
                   border: "none",
                 },
               }}

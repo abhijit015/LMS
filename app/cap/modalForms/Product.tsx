@@ -1,4 +1,3 @@
-"use client";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -8,9 +7,14 @@ import {
   Typography,
   IconButton,
   Divider,
+  Checkbox,
 } from "@mui/material";
 import { saveProduct, loadProduct } from "@/app/controllers/product.controller";
-import { licenseParamSchemaT, productSchemaT } from "@/app/utils/models";
+import {
+  licenseParamSchemaT,
+  productLicenseParamsSchemaT,
+  productSchemaT,
+} from "@/app/utils/models";
 import { productSchema } from "@/app/utils/zodschema";
 import { loadAllLicenseFields } from "@/app/controllers/license.controller";
 import AddIcon from "@mui/icons-material/Add";
@@ -37,6 +41,7 @@ import { randomId } from "@mui/x-data-grid-generator";
 import { MSG_ERROR, MSG_NORMAL } from "@/app/utils/constants";
 import ConfirmationModal from "./AskYesNo";
 import MessageModal from "./ShowMsg";
+import DoneIcon from "@mui/icons-material/Done";
 
 interface ProductModalProps {
   open: boolean;
@@ -52,52 +57,6 @@ interface EditToolbarProps {
   ) => void;
 }
 
-const initialRows: GridRowsProp = [];
-
-function EditToolbar(props: EditToolbarProps) {
-  const { setRows, setRowModesModel } = props;
-
-  const handleAddRow = () => {
-    const id = randomId();
-    setRows((oldRows) => [
-      ...oldRows,
-      {
-        id,
-        //date: today,
-        // ...Object.fromEntries(licenseParams.map((param) => [param.name, ""])),
-      },
-    ]);
-
-    setRowModesModel((oldModel) => ({
-      ...oldModel,
-      [id]: { mode: GridRowModes.Edit, fieldToFocus: "date" },
-    }));
-  };
-
-  return (
-    <GridToolbarContainer>
-      <Box
-        sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}
-      >
-        <Typography
-          variant="h6"
-          sx={{
-            color: "primary.main",
-            fontSize: "1.1rem",
-            ml: 1,
-          }}
-        >
-          Datewise License Parameters
-        </Typography>
-
-        <Button color="primary" startIcon={<AddIcon />} onClick={handleAddRow}>
-          Add record
-        </Button>
-      </Box>
-    </GridToolbarContainer>
-  );
-}
-
 const ProductModal: React.FC<ProductModalProps> = ({
   open,
   productId,
@@ -108,6 +67,11 @@ const ProductModal: React.FC<ProductModalProps> = ({
   const [licenseParams, setLicenseParams] = useState<licenseParamSchemaT[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [rows, setRows] = React.useState<productLicenseParamsSchemaT[]>([]);
+  const [rowModesModel, setRowModesModel] = React.useState<GridRowModesModel>(
+    {}
+  );
+
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
     title: "",
@@ -134,6 +98,29 @@ const ProductModal: React.FC<ProductModalProps> = ({
           result = await loadProduct(productId);
           if (result.status) {
             setProductData(result.data as productSchemaT);
+
+            if (
+              result.data.productLicenseParams &&
+              result.data.productLicenseParams.length > 0
+            ) {
+              const rowsData = result.data.productLicenseParams.map(
+                (licenseParamGroup: productLicenseParamsSchemaT) => ({
+                  id: randomId(),
+                  effective_from: licenseParamGroup.effective_from,
+                  product_id: productId ? productId : 0,
+                  licenseParams: licenseParamGroup.licenseParams.map(
+                    (param) => ({
+                      ...param,
+                      selected: param.selected,
+                    })
+                  ),
+                })
+              );
+
+              setRows(rowsData);
+
+              console.log("rows data : ", rowsData);
+            }
           } else {
             proceed = false;
             errMsg = result.message;
@@ -177,14 +164,99 @@ const ProductModal: React.FC<ProductModalProps> = ({
     } else if (!open) {
       setProductData(null);
       setErrors({});
+      setRows([]);
       hasLoadedData.current = false;
     }
   }, [productId, open]);
 
-  const [rows, setRows] = React.useState(initialRows);
-  const [rowModesModel, setRowModesModel] = React.useState<GridRowModesModel>(
-    {}
-  );
+  function EditToolbar(props: EditToolbarProps) {
+    //const { setRows, setRowModesModel } = props;
+
+    return (
+      <GridToolbarContainer>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            width: "100%",
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{ color: "primary.main", fontSize: "1.1rem", ml: 1 }}
+          >
+            Datewise License Parameters
+          </Typography>
+
+          <Button
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleAddRow}
+          >
+            Add record
+          </Button>
+        </Box>
+      </GridToolbarContainer>
+    );
+  }
+
+  //add row in end
+  // const handleAddRow = () => {
+  //   const id = randomId();
+
+  //   const newLicenseParams = licenseParams.map((field) => ({
+  //     id: field.id,
+  //     name: field.name,
+  //     basis: field.basis,
+  //     client_id: field.client_id,
+  //     selected: false,
+  //   }));
+
+  //   setRows((oldRows) => [
+  //     ...oldRows,
+  //     {
+  //       id,
+  //       effective_from: new Date(),
+  //       licenseParams: newLicenseParams,
+  //       product_id: productId ? productId : 0,
+  //       isNew: true,
+  //     },
+  //   ]);
+
+  //   setRowModesModel((oldModel) => ({
+  //     ...oldModel,
+  //     [id]: { mode: GridRowModes.Edit, fieldToFocus: "effective_from" },
+  //   }));
+  // };
+
+  //add row in starting
+  const handleAddRow = () => {
+    const id = randomId();
+
+    const newLicenseParams = licenseParams.map((field) => ({
+      id: field.id,
+      name: field.name,
+      basis: field.basis,
+      client_id: field.client_id,
+      selected: false,
+    }));
+
+    setRows((oldRows) => [
+      {
+        id,
+        effective_from: new Date(),
+        licenseParams: newLicenseParams,
+        product_id: productId ? productId : 0,
+        isNew: true,
+      },
+      ...oldRows,
+    ]);
+
+    setRowModesModel((oldModel) => ({
+      ...oldModel,
+      [id]: { mode: GridRowModes.Edit, fieldToFocus: "effective_from" },
+    }));
+  };
 
   const handleRowEditStop: GridEventListener<"rowEditStop"> = (
     params,
@@ -196,123 +268,146 @@ const ProductModal: React.FC<ProductModalProps> = ({
   };
 
   const handleEditClick = (id: GridRowId) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.Edit } });
+    setRowModesModel((oldModel) => ({
+      ...oldModel,
+      [id]: { mode: GridRowModes.Edit },
+    }));
   };
 
   const handleSaveClick = (id: GridRowId) => () => {
-    setRowModesModel({ ...rowModesModel, [id]: { mode: GridRowModes.View } });
+    setRowModesModel((oldModel) => ({
+      ...oldModel,
+      [id]: { mode: GridRowModes.View },
+    }));
+
+    setRows((prevRows) => {
+      return prevRows.map((row) => {
+        if (row.id === id) {
+          const editedRow = prevRows.find((r) => r.id === id);
+          if (!editedRow) return row;
+
+          const updatedLicenseParams = licenseParams.map((param) => ({
+            id: param.id,
+            name: param.name,
+            basis: param.basis,
+            client_id: param.client_id,
+            selected: editedRow[param.name as keyof typeof editedRow] === true,
+          }));
+
+          return {
+            ...row,
+            ...editedRow,
+            licenseParams: updatedLicenseParams,
+            isNew: false,
+          };
+        }
+        return row;
+      });
+    });
   };
 
   const handleDeleteClick = (id: GridRowId) => () => {
-    setRows(rows.filter((row) => row.id !== id));
+    setConfirmationModal({
+      open: true,
+      title: "Confirm Delete",
+      message: "Are you sure you want to delete this row?",
+      onConfirm: () => {
+        setRows((prevRows) => prevRows.filter((row) => row.id !== id));
+        setConfirmationModal((prev) => ({ ...prev, open: false }));
+      },
+    });
   };
 
   const handleCancelClick = (id: GridRowId) => () => {
-    setRowModesModel({
-      ...rowModesModel,
+    setRowModesModel((oldModel) => ({
+      ...oldModel,
       [id]: { mode: GridRowModes.View, ignoreModifications: true },
-    });
+    }));
 
-    const editedRow = rows.find((row) => row.id === id);
-    if (editedRow!.isNew) {
-      setRows(rows.filter((row) => row.id !== id));
-    }
+    setRows((prevRows) => {
+      const editedRow = prevRows.find((row) => row.id === id);
+      if (editedRow?.isNew) {
+        return prevRows.filter((row) => row.id !== id);
+      }
+      return prevRows.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              ...prevRows.find((originalRow) => originalRow.id === id),
+            }
+          : row
+      );
+    });
   };
 
   const processRowUpdate = (newRow: GridRowModel) => {
-    const updatedRow = { ...newRow, isNew: false };
-    setRows(rows.map((row) => (row.id === newRow.id ? updatedRow : row)));
+    console.log("processRowUpdate : ", newRow);
+
+    const updatedLicenseParams = licenseParams.map((param) => ({
+      id: param.id,
+      name: param.name,
+      basis: param.basis,
+      client_id: param.client_id,
+      selected: newRow[param.name as keyof typeof newRow] === true,
+    }));
+
+    const updatedRow: productLicenseParamsSchemaT = {
+      ...newRow,
+      licenseParams: updatedLicenseParams,
+      product_id: productId ? productId : 0,
+      effective_from: newRow.effective_from,
+    };
+
+    setRows((prevRows) =>
+      prevRows.map((row) => (row.id === newRow.id ? updatedRow : row))
+    );
+
     return updatedRow;
   };
 
-  const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
-    setRowModesModel(newRowModesModel);
-  };
+ 
 
-  const licenseParamCols: GridColDef[] = licenseParams.map((param) => ({
-    field: param.name,
-    headerName: param.name,
-    type: "boolean",
-    width: 180,
-    editable: true,
-    renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-  }));
+  const licenseParamCols: GridColDef[] = licenseParams.map(
+    (param: licenseParamSchemaT) => ({
+      field: param.name,
+      headerName: param.name,
+      type: "boolean",
+      width: 180,
+      editable: true,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name } = e.target;
-    setErrors((prevErrors) => {
-      const newErrors = { ...prevErrors };
-      delete newErrors[name];
-      return newErrors;
-    });
-  };
+      renderCell: (params) => {
+        const isInEditMode =
+          rowModesModel[params.row.id]?.mode === GridRowModes.Edit;
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+        const selectedParam = params.row.licenseParams.find(
+          (param: licenseParamSchemaT) => param.name === params.field
+        );
+        const isSelected: boolean = selectedParam
+          ? selectedParam.selected
+          : false;
 
-    const formData = new FormData(e.target as HTMLFormElement);
-    const formDataObj = Object.fromEntries(formData.entries());
-
-    const result = productSchema.safeParse(formDataObj);
-
-    if (result.success) {
-      const parsedData = result.data;
-
-      if (productId) parsedData.id = productId;
-
-      setConfirmationModal({
-        open: true,
-        title: "Confirm Save",
-        message: "Are you sure you want to save this product?",
-        onConfirm: () => confirmSave(parsedData),
-      });
-    } else {
-      const validationErrors = result.error.errors.reduce((acc, curr) => {
-        acc[curr.path[0]] = curr.message;
-        return acc;
-      }, {} as { [key: string]: string });
-      setErrors(validationErrors);
-    }
-  };
-
-  const confirmSave = async (parsedData: productSchemaT) => {
-    try {
-      setLoading(true);
-      setConfirmationModal({ ...confirmationModal, open: false });
-
-      const result = await saveProduct(parsedData);
-      if (result.status) {
-        onSave();
-        // setMessageModal({
-        //   open: true,
-        //   title: "Success",
-        //   message: "Product saved successfully!",
-        //   type: MSG_NORMAL,
-        // });
-        onClose();
-      } else {
-        setMessageModal({
-          open: true,
-          title: "Error",
-          message: result.message,
-          type: MSG_ERROR,
-        });
-      }
-    } catch (error) {
-      setMessageModal({
-        open: true,
-        title: "Error",
-        message: "Error saving product data.",
-        type: MSG_ERROR,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (isInEditMode) {
+          return (
+            <Checkbox
+              defaultChecked={true}
+              // checked={true}
+            />
+          );
+        } else {
+          return (
+            <Typography variant="body2">
+              {isSelected && <DoneIcon fontSize="small" />}
+            </Typography>
+          );
+        }
+      },
+    })
+  );
 
   const columns: GridColDef[] = [
     {
-      field: "date",
+      field: "effective_from",
       headerName: "Effective From",
       width: 180,
       editable: true,
@@ -372,6 +467,97 @@ const ProductModal: React.FC<ProductModalProps> = ({
     },
   ];
 
+  const handleRowModesModelChange = (newRowModesModel: GridRowModesModel) => {
+    setRowModesModel(newRowModesModel);
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const isAnyRowInEditMode = Object.values(rowModesModel).some(
+      (mode) => mode.mode === GridRowModes.Edit
+    );
+
+    if (isAnyRowInEditMode) {
+      setMessageModal({
+        open: true,
+        title: "Error",
+        message:
+          "Please save or cancel all changes in Datewise License Parameters before saving.",
+        type: MSG_ERROR,
+      });
+      return;
+    }
+
+    const formData = new FormData(e.target as HTMLFormElement);
+    const formDataObj = Object.fromEntries(formData.entries());
+
+    let result = productSchema.safeParse(formDataObj);
+
+    if (result.success) {
+      const parsedData = result.data;
+
+      parsedData.productLicenseParams = rows;
+
+      if (productId) {
+        parsedData.id = productId;
+      }
+
+      console.log("parsedData : ", parsedData);
+
+      setConfirmationModal({
+        open: true,
+        title: "Confirm Save",
+        message: "Are you sure you want to save this product?",
+        onConfirm: () => confirmSave(parsedData),
+      });
+    } else {
+      const validationErrors = result.error.errors.reduce((acc, curr) => {
+        acc[curr.path[0]] = curr.message;
+        return acc;
+      }, {} as { [key: string]: string });
+      setErrors(validationErrors);
+    }
+  };
+
+  const confirmSave = async (parsedData: productSchemaT) => {
+    try {
+      setLoading(true);
+      setConfirmationModal({ ...confirmationModal, open: false });
+
+      const result = await saveProduct(parsedData);
+      if (result.status) {
+        onSave();
+        onClose();
+      } else {
+        setMessageModal({
+          open: true,
+          title: "Error",
+          message: result.message,
+          type: MSG_ERROR,
+        });
+      }
+    } catch (error) {
+      setMessageModal({
+        open: true,
+        title: "Error",
+        message: String(error),
+        type: MSG_ERROR,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name } = e.target;
+    setErrors((prevErrors) => {
+      const newErrors = { ...prevErrors };
+      delete newErrors[name];
+      return newErrors;
+    });
+  };
+
   return (
     <>
       <Modal open={open} onClose={onClose}>
@@ -381,7 +567,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 1500,
+            width: "75%",
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 4,
@@ -424,6 +610,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
               helperText={errors.name}
               sx={{ mb: 3, textTransform: "capitalize" }}
               defaultValue={productData?.name || ""}
+              autoFocus
               onChange={handleChange}
             />
             <Box
@@ -460,12 +647,6 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 }}
                 sx={{
                   "& .MuiDataGrid-cell": {
-                    border: "none",
-                  },
-                  "& .MuiDataGrid-columnHeaders": {
-                    borderBottom: "none",
-                  },
-                  "& .MuiDataGrid-root": {
                     border: "none",
                   },
                 }}

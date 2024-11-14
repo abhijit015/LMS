@@ -27,14 +27,20 @@ export const dealerSchema = z.object({
   updated_by: z.number().int().positive().optional(),
 });
 
-export const productLicenseParamsSchema = z.object({
-  id: z.number().optional(),
-  product_id: z.number().int(),
-  license_param_id: z.number().int(),
-  effective_from: z.date(),
+export const licenseParamSchema = z.object({
+  id: z.number(),
+  name: z.string().trim().min(1).max(255),
+  basis: z.number().int().positive(),
+  client_id: z.number().int().positive(),
   selected: z.boolean().default(false),
-  created_by: z.number().optional(),
-  updated_by: z.number().optional(),
+});
+
+export const productLicenseParamsSchema = z.object({
+  id: z.string().optional(),
+  product_id: z.number().int(),
+  licenseParams: z.array(licenseParamSchema),
+  effective_from: z.date(),
+  isNew: z.boolean().optional(),
 });
 
 export const productSchema = z.object({

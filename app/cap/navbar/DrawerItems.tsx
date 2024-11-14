@@ -38,6 +38,14 @@ const DrawerItems: React.FC<DrawerItemsProps> = ({ onClose, userData }) => {
       )}
 
       {userData?.user_type === USER_TYPE_CLIENT && (
+        <Link href="/cap/plans" passHref>
+          <ListItemButton onClick={onClose}>
+            <ListItemText primary="License Plans" />
+          </ListItemButton>
+        </Link>
+      )}
+
+      {userData?.user_type === USER_TYPE_CLIENT && (
         <Link href="/cap/products" passHref>
           <ListItemButton onClick={onClose}>
             <ListItemText primary="Products" />

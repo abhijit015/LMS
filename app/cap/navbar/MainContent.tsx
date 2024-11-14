@@ -13,10 +13,8 @@ const MainContent: React.FC<MainContentProps> = ({ children }) => {
       aria-label="Main content"
       sx={{
         flexGrow: 1,
-        p: (theme) => theme.spacing(3),
+        p: (theme) => theme.spacing(1),
         mt: (theme) => theme.spacing(3),
-        backgroundColor: "#fafafa",
-        minHeight: "100vh",
       }}
     >
       {children}

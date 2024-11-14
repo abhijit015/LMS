@@ -47,28 +47,6 @@ const Dashboard = () => {
 
   return (
     <Layout title="Dashboard" loading={loading}>
-      <h1>Welcome to the Dashboard!</h1>
-      <button
-        onClick={() =>
-          showConfirmation(
-            "Confirm Action",
-            "Are you sure you want to proceed?",
-            () => {
-              console.log("Confirmed!");
-            }
-          )
-        }
-      >
-        Show Confirmation
-      </button>
-      <button
-        onClick={() =>
-          showMessage("Notice", "This is an important message.", MSG_NORMAL)
-        }
-      >
-        Show Message
-      </button>
-
       <ConfirmationModal
         open={confirmationModal.open}
         onClose={() =>

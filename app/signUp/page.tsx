@@ -9,6 +9,8 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  Card,
+  CardContent,
 } from "@mui/material";
 import { userSchema } from "../utils/zodschema";
 import { clientSchema } from "../utils/zodschema";
@@ -191,177 +193,180 @@ const SignUp: React.FC = () => {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        backgroundColor: "#f0f2f5",
       }}
     >
-      <form onSubmit={handleSubmit}>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            maxWidth: 400,
-            padding: 4,
-            backgroundColor: "#fff",
-            borderRadius: 2,
-            boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
-            textAlign: "center",
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{ mb: 3, fontWeight: "600", color: "#333" }}
-          >
-            Register Now With LMS
-          </Typography>
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 500,
+          borderRadius: 2,
+        }}
+      >
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <Typography
+              variant="h5"
+              sx={{
+                mb: 3,
+                fontWeight: "600",
+                color: "#333",
+                textAlign: "center",
+              }}
+            >
+              Register Now With LMS
+            </Typography>
 
-          <TextField
-            name="display_name"
-            label="Client Name"
-            fullWidth
-            size="small"
-            autoComplete="off"
-            required
-            error={!!errors.display_name}
-            helperText={errors.display_name}
-            onChange={handleInputChange("display_name")}
-            sx={{ mb: 2 }}
-            autoFocus
+            <TextField
+              name="display_name"
+              label="Client Name"
+              fullWidth
+              size="small"
+              autoComplete="off"
+              required
+              error={!!errors.display_name}
+              helperText={errors.display_name}
+              onChange={handleInputChange("display_name")}
+              sx={{ mb: 2 }}
+              autoFocus
+            />
+
+            <TextField
+              name="email"
+              label="Email"
+              fullWidth
+              size="small"
+              autoComplete="off"
+              required
+              error={!!errors.email}
+              helperText={errors.email}
+              onChange={handleInputChange("email")}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              name="phone"
+              label="Phone Number"
+              fullWidth
+              size="small"
+              autoComplete="off"
+              error={!!errors.phone}
+              helperText={errors.phone}
+              onChange={handleInputChange("phone")}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              name="contact_person"
+              label="Contact Person"
+              fullWidth
+              size="small"
+              autoComplete="off"
+              error={!!errors.contact_person}
+              helperText={errors.contact_person}
+              onChange={handleClientInputChange("contact_person")}
+              sx={{ mb: 2 }}
+            />
+
+            <TextField
+              name="password"
+              label="Password"
+              type="password"
+              fullWidth
+              autoComplete="off"
+              required
+              size="small"
+              error={!!errors.password}
+              helperText={errors.password}
+              onChange={handleInputChange("password")}
+              sx={{ mb: 3 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                      aria-label="toggle password visibility"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={loading}
+              sx={{
+                height: 48,
+                fontSize: "1rem",
+                fontWeight: "bold",
+                mb: 2,
+                position: "relative",
+              }}
+            >
+              {loading ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : (
+                "Sign Up"
+              )}
+            </Button>
+
+            <Typography
+              variant="body2"
+              sx={{ mt: 2, color: "#555", textAlign: "center" }}
+            >
+              Already have an account?{" "}
+              <Link href="/" passHref>
+                <Typography
+                  component="span"
+                  sx={{
+                    color: "#005a9f",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Sign In
+                </Typography>
+              </Link>
+            </Typography>
+          </form>
+
+          <ConfirmationModal
+            open={confirmation.open}
+            onClose={() =>
+              setConfirmation({
+                open: false,
+                title: "",
+                message: "",
+                onConfirm: () => {},
+              })
+            }
+            onConfirm={confirmation.onConfirm}
+            title={confirmation.title}
+            message={confirmation.message}
           />
 
-          <TextField
-            name="email"
-            label="Email"
-            fullWidth
-            size="small"
-            autoComplete="off"
-            required
-            error={!!errors.email}
-            helperText={errors.email}
-            onChange={handleInputChange("email")}
-            sx={{ mb: 2 }}
+          <MessageModal
+            open={messageModal.open}
+            onClose={() =>
+              setMessageModal({
+                open: false,
+                title: "",
+                message: "",
+                type: MSG_NORMAL,
+              })
+            }
+            type={messageModal.type}
+            title={messageModal.title}
+            message={messageModal.message}
           />
-
-          <TextField
-            name="phone"
-            label="Phone Number"
-            fullWidth
-            size="small"
-            autoComplete="off"
-            error={!!errors.phone}
-            helperText={errors.phone}
-            onChange={handleInputChange("phone")}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            name="contact_person"
-            label="Contact Person"
-            fullWidth
-            size="small"
-            autoComplete="off"
-            error={!!errors.contact_person}
-            helperText={errors.contact_person}
-            onChange={handleClientInputChange("contact_person")}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            name="password"
-            label="Password"
-            type="password"
-            fullWidth
-            autoComplete="off"
-            required
-            size="small"
-            error={!!errors.password}
-            helperText={errors.password}
-            onChange={handleInputChange("password")}
-            sx={{ mb: 3 }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={handleClickShowPassword}
-                    edge="end"
-                    aria-label="toggle password visibility"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={loading}
-            sx={{
-              height: 48,
-              fontSize: "1rem",
-              fontWeight: "bold",
-              mb: 2,
-              position: "relative",
-            }}
-          >
-            {loading ? (
-              <CircularProgress size={24} sx={{ color: "white" }} />
-            ) : (
-              "Sign Up"
-            )}
-          </Button>
-
-          <Typography variant="body2" sx={{ mt: 2, color: "#555" }}>
-            Already have an account?{" "}
-            <Link href="/" passHref>
-              <Typography
-                component="span"
-                sx={{
-                  color: "#005a9f",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                }}
-              >
-                Sign In
-              </Typography>
-            </Link>
-          </Typography>
-        </Box>
-      </form>
-
-      <ConfirmationModal
-        open={confirmation.open}
-        onClose={() =>
-          setConfirmation({
-            open: false,
-            title: "",
-            message: "",
-            onConfirm: () => {},
-          })
-        }
-        onConfirm={confirmation.onConfirm}
-        title={confirmation.title}
-        message={confirmation.message}
-      />
-
-      <MessageModal
-        open={messageModal.open}
-        onClose={() =>
-          setMessageModal({
-            open: false,
-            title: "",
-            message: "",
-            type: MSG_NORMAL,
-          })
-        }
-        type={messageModal.type}
-        title={messageModal.title}
-        message={messageModal.message}
-      />
+        </CardContent>
+      </Card>
     </Box>
   );
 };

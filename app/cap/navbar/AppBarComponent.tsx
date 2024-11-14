@@ -10,6 +10,7 @@ import {
   Drawer,
   Backdrop,
   CircularProgress,
+  useTheme,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
@@ -27,6 +28,7 @@ const AppBarComponent: React.FC<{
   const [loading, setLoading] = useState<boolean>(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const dropdownOpen = Boolean(anchorEl);
+  const theme = useTheme();
 
   const handleDropdownClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -62,6 +64,9 @@ const AppBarComponent: React.FC<{
         position="fixed"
         sx={{
           zIndex: (theme) => theme.zIndex.drawer + 1,
+          backgroundColor: "transparent",
+          color: "#171717",
+          boxShadow: "none",
         }}
       >
         <Toolbar>
@@ -74,7 +79,15 @@ const AppBarComponent: React.FC<{
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography
+            sx={{
+              fontWeight: "bold",
+              fontSize: "1.5rem",
+            }}
+            variant="h6"
+            noWrap
+            component="div"
+          >
             {title}
           </Typography>
 

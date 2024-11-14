@@ -9,6 +9,8 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  Card,
+  CardContent,
 } from "@mui/material";
 import { loadUser, validateUser } from "../controllers/user.controller";
 import { useRouter } from "next/navigation";
@@ -101,142 +103,123 @@ const SignIn: React.FC = () => {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        backgroundColor: "#e8f0fe",
       }}
     >
-      <form onSubmit={handleSubmit}>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            maxWidth: 400,
-            padding: 4,
-            backgroundColor: "#ffffff",
-            borderRadius: 3,
-            boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.15)",
-            transition: "all 0.3s ease",
-            "&:hover": {
-              boxShadow: "0px 12px 32px rgba(0, 0, 0, 0.2)",
-            },
-          }}
-        >
-          <Typography
-            variant="h5"
-            sx={{
-              mb: 3,
-              fontWeight: "bold",
-              color: "#333",
-              fontSize: "1.6rem",
-            }}
-          >
-            Sign In
-          </Typography>
-          <TextField
-            variant="standard"
-            name="username"
-            label="Email or Phone"
-            fullWidth
-            size="medium"
-            autoComplete="off"
-            required
-            error={!!errors.username}
-            helperText={errors.username}
-            sx={{ mb: 2, borderRadius: 1 }}
-            autoFocus
-          />
-          <TextField
-            variant="standard"
-            name="password"
-            label="Password"
-            type={showPassword ? "text" : "password"}
-            fullWidth
-            size="medium"
-            autoComplete="off"
-            required
-            error={!!errors.password}
-            helperText={errors.password}
-            sx={{ mb: 3, borderRadius: 1 }}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={handleClickShowPassword}
-                    edge="end"
-                    aria-label="toggle password visibility"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            fullWidth
-            disabled={loading}
-            sx={{
-              height: 48,
-              fontSize: "1rem",
-              fontWeight: "bold",
-              mb: 2,
-              borderRadius: 1,
-              backgroundColor: "#005a9f",
-              "&:hover": {
-                backgroundColor: "#004a87",
-              },
-            }}
-          >
-            {loading ? (
-              <CircularProgress size={24} sx={{ color: "white" }} />
-            ) : (
-              "Sign In"
-            )}
-          </Button>
-
-          <Link href="/forgot-password" passHref>
+      <Card
+        sx={{
+          width: "100%",
+          maxWidth: 500,
+          borderRadius: 2,
+          margin: "0 auto",
+        }}
+      >
+        <CardContent>
+          <form onSubmit={handleSubmit}>
             <Typography
-              variant="body2"
+              variant="h5"
               sx={{
-                color: "#005a9f",
+                mb: 3,
                 fontWeight: "bold",
-                cursor: "pointer",
-                textDecoration: "underline",
-                mb: 2,
+                color: "#333",
+                fontSize: "1.6rem",
               }}
             >
-              Forgot Password?
+              Sign In
             </Typography>
-          </Link>
 
-          <Typography variant="body2" sx={{ mt: 2, color: "#555" }}>
-            Don't have an account?{" "}
-            <Link href="/signUp" passHref>
-              <Typography
-                component="span"
-                sx={{
-                  color: "#005a9f",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  textDecoration: "underline",
-                }}
-              >
-                Sign Up
-              </Typography>
-            </Link>
-          </Typography>
-        </Box>
-      </form>
+            <TextField
+              variant="standard"
+              name="username"
+              label="Email or Phone"
+              fullWidth
+              size="medium"
+              autoComplete="off"
+              required
+              error={!!errors.username}
+              helperText={errors.username}
+              sx={{ mb: 2, borderRadius: 1 }}
+              autoFocus
+            />
 
-      <MessageModal
-        open={modal.open}
-        onClose={handleModalClose}
-        title={modal.title}
-        message={modal.message}
-        type={modal.type}
-      />
+            <TextField
+              variant="standard"
+              name="password"
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              fullWidth
+              size="medium"
+              autoComplete="off"
+              required
+              error={!!errors.password}
+              helperText={errors.password}
+              sx={{ mb: 3, borderRadius: 1 }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={handleClickShowPassword}
+                      edge="end"
+                      aria-label="toggle password visibility"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              disabled={loading}
+              sx={{
+                height: 48,
+                fontSize: "1rem",
+                fontWeight: "bold",
+                mb: 2,
+                borderRadius: 1,
+                backgroundColor: "#005a9f",
+                "&:hover": {
+                  backgroundColor: "#004a87",
+                },
+              }}
+            >
+              {loading ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : (
+                "Sign In"
+              )}
+            </Button>
+
+            <Typography variant="body2" sx={{ mt: 2, color: "#555" }}>
+              Don't have an account?{" "}
+              <Link href="/signUp" passHref>
+                <Typography
+                  component="span"
+                  sx={{
+                    color: "#005a9f",
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  Sign Up
+                </Typography>
+              </Link>
+            </Typography>
+          </form>
+
+          <MessageModal
+            open={modal.open}
+            onClose={handleModalClose}
+            title={modal.title}
+            message={modal.message}
+            type={modal.type}
+          />
+        </CardContent>
+      </Card>
     </Box>
   );
 };

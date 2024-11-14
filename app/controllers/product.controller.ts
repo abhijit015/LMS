@@ -58,6 +58,17 @@ export async function saveProduct(productData: productSchemaT) {
   let proceed: boolean = true;
   let result;
 
+  console.log("productData : ", productData);
+
+  console.log(
+    "licenseParams : ",
+    JSON.stringify(
+      productData.productLicenseParams,
+      (key, value) => (key === "licenseParams" ? value : value),
+      2
+    )
+  );
+
   try {
     if (proceed) {
       result = await canProductBeSaved(productData);
