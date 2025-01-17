@@ -1,41 +1,68 @@
 "use client";
+
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
-  Button,
   Modal,
-  TextField,
   Typography,
   IconButton,
   Divider,
   Alert,
   Snackbar,
-  CircularProgress,
+  Button,
 } from "@mui/material";
-import { saveLicense, loadLicense } from "@/app/controllers/license.controller";
-import { licenseSchemaT, userSchemaT } from "@/app/utils/models";
-import { licenseSchema, userSchema } from "@/app/utils/zodschema";
 import ConfirmationModal from "./AskYesNo";
 import CloseIcon from "@mui/icons-material/Close";
-import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import {
+  loadAddonStatus4License,
+  loadLicenseDet,
+  loadLicenseStatus,
+} from "@/app/controllers/license.controller";
+import {
+  licenseDetSchemaT,
+  licenseStatusSchemaT,
+  productVariantsSchemaT,
+} from "@/app/utils/models";
+import { formatDate, licenseParamId2Name } from "@/app/utils/common";
+import {
+  LICENSE_PARAM_USERS,
+  LICENSE_PARAM_VALIDITY,
+  LICENSE_PARAM_VARIANT,
+} from "@/app/utils/constants";
+import { loadVariant } from "@/app/controllers/product.controller";
+import AssignDealer from "./AssignDealer";
+import ExtendVariant from "./ExtendVariant";
+import ExtendValidity from "./ExtendValidity";
+import ExtendUsers from "./ExtendUsers";
+import ExtendAddon from "./ExtendAddon";
 
 interface LicenseModalProps {
   open: boolean;
-  licenseId?: number;
+  licenseId: number;
   onClose: () => void;
-  onSave: () => void;
+}
+
+interface AddonStatusList {
+  id: number;
+  addon_name: string;
+  addon_plan_name: string;
+  balance_addon_value: number;
+  grace: number;
 }
 
 const LicenseModal: React.FC<LicenseModalProps> = ({
   open,
   licenseId,
   onClose,
-  onSave,
 }) => {
-  const [licenseData, setLicenseData] = useState<licenseSchemaT | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [addonStatus, setAddonStatus] = useState<AddonStatusList[]>([]);
+  const [licenseDet, setLicenseDet] = useState<licenseDetSchemaT>();
+  const [licenseStatus, setLicenseStatus] = useState<licenseStatusSchemaT>();
+  const [variantData, setVariantData] = useState<productVariantsSchemaT>();
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
     title: "",
@@ -43,126 +70,85 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
     onConfirm: () => {},
     onClose: () => {},
   });
+  const [isAssignDealerModalOpen, setIsAssignDealerModalOpen] = useState(false);
+  const [isExtendVariantModalOpen, setIsExtendVariantModalOpen] =
+    useState(false);
+  const [isExtendAddonModalOpen, setIsExtendAddonModalOpen] = useState(false);
+  const [isExtendValidityModalOpen, setIsExtendValidityModalOpen] =
+    useState(false);
+  const [isExtendUsersModalOpen, setIsExtendUsersModalOpen] = useState(false);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
     severity: "error" | "success" | "info" | "warning";
   }>({ open: false, message: "", severity: "info" });
 
-  useEffect(() => {
-    const fetchLicenseData = async () => {
-      let errMsg: string = "";
-      let proceed: boolean = true;
-      let result;
+  const hasLoadedData = useRef(false);
 
-      try {
-        if (proceed && licenseId) {
-          setLoading(true);
-          result = await loadLicense(licenseId);
-          if (result.status) {
-            setLicenseData(result.data as licenseSchemaT);
-          } else {
-            proceed = false;
-            errMsg = result.message;
-          }
-        }
+  const fetchLicenseData = async () => {
+    let errMsg: string = "";
+    let proceed: boolean = true;
+    let result;
+    let variantId;
 
-        if (!proceed) {
-          setSnackbar({
-            open: true,
-            message: errMsg,
-            severity: "error",
-          });
-        }
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: String(error),
-          severity: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (open) {
-      if (!licenseId) {
-        setLicenseData(null);
-      } else {
-        fetchLicenseData();
-      }
-    } else {
-      setLicenseData(null);
-      setErrors({});
-    }
-  }, [licenseId, open]);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    let baseData: Record<string, any> = licenseId ? { ...licenseData } : {};
-
-    const formData = new FormData(e.currentTarget);
-    formData.forEach((value, key) => {
-      baseData[key] = value;
-    });
-
-    let licenseResult = licenseSchema.safeParse(baseData);
-
-    if (licenseResult.success) {
-      setConfirmationModal({
-        open: true,
-        title: "Confirm Save",
-        message: "Are you sure you want to save this license?",
-        onConfirm: () => confirmSave(licenseResult.data),
-        onClose: () => {},
-      });
-    } else {
-      const validationErrors = licenseResult.error.errors.reduce(
-        (acc, curr) => {
-          acc[curr.path[0]] = curr.message;
-          return acc;
-        },
-        {} as { [key: string]: string }
-      );
-      setErrors(validationErrors);
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name } = e.target;
-    setErrors((prevErrors) => {
-      const newErrors = { ...prevErrors };
-      delete newErrors[name];
-      return newErrors;
-    });
-  };
-
-  const confirmSave = async (parsedLicenseData: licenseSchemaT) => {
     try {
-      setLoading(true);
-      setConfirmationModal({ ...confirmationModal, open: false });
+      if (proceed) {
+        result = await loadAddonStatus4License(licenseId);
 
-      const result = await saveLicense(parsedLicenseData);
-      if (result.status) {
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setAddonStatus(result.data as AddonStatusList[]);
+        }
+      }
+
+      if (proceed) {
+        result = await loadLicenseDet(licenseId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setLicenseDet(result.data as licenseDetSchemaT);
+        }
+      }
+
+      if (proceed) {
+        result = await loadLicenseStatus(licenseId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          const formattedData = {
+            ...result.data,
+            expiry_date: formatDate(result.data.expiry_date),
+          };
+          setLicenseStatus(formattedData);
+          variantId = result.data.product_variant_id;
+        }
+      }
+
+      if (proceed) {
+        result = await loadVariant(variantId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setVariantData(result.data as productVariantsSchemaT);
+        }
+      }
+
+      if (!proceed) {
         setSnackbar({
           open: true,
-          message: "License saved successfully.",
-          severity: "success",
-        });
-        onSave();
-        onClose();
-      } else {
-        setSnackbar({
-          open: true,
-          message: result.message,
+          message: errMsg,
           severity: "error",
         });
       }
     } catch (error) {
       setSnackbar({
         open: true,
-        message: "Error saving license data.",
+        message: String(error),
         severity: "error",
       });
     } finally {
@@ -170,8 +156,186 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (open && !hasLoadedData.current) {
+      fetchLicenseData();
+      hasLoadedData.current = true;
+    } else if (!open) {
+      hasLoadedData.current = false;
+    }
+  }, [licenseId, open]);
+
   const handleSnackbarClose = () => {
     setSnackbar((prevState) => ({ ...prevState, open: false }));
+  };
+
+  const licenseColumns: GridColDef[] = [
+    {
+      field: "parameter",
+      headerName: "Parameter",
+      width: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "particulars",
+      headerName: "Particulars",
+      width: 600,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "extend",
+      headerName: " ",
+      headerAlign: "center",
+      align: "center",
+      width: 100,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      renderCell: (params) => {
+        if (
+          params.row.id === LICENSE_PARAM_VARIANT ||
+          !variantData?.is_free_variant
+        ) {
+          return (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "primary.main",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  "&:hover": { color: "error.main" },
+                }}
+                onClick={() => handleExtendLicenseParam(params.row.id)}
+              >
+                Extend
+              </Typography>
+            </Box>
+          );
+        }
+        return null;
+      },
+    },
+  ];
+
+  const licenseRows = [
+    {
+      id: LICENSE_PARAM_VARIANT,
+      parameter: licenseParamId2Name(LICENSE_PARAM_VARIANT),
+      particulars: licenseStatus?.product_variant_name,
+    },
+    {
+      id: LICENSE_PARAM_VALIDITY,
+      parameter: licenseParamId2Name(LICENSE_PARAM_VALIDITY),
+      particulars: variantData?.is_free_variant
+        ? "Lifetime"
+        : [
+            licenseStatus?.expiry_date
+              ? `Valid Upto : ${String(licenseStatus.expiry_date)}`
+              : "",
+            // licenseStatus?.grace !== null && licenseStatus?.grace !== undefined
+            //   ? `Grace: ${String(licenseStatus.grace)} Days`
+            //   : "",
+          ]
+            .filter(Boolean)
+            .join(" | "),
+    },
+    {
+      id: LICENSE_PARAM_USERS,
+      parameter: licenseParamId2Name(LICENSE_PARAM_USERS),
+      particulars: "Current Users : " + String(licenseStatus?.no_of_users),
+    },
+  ];
+
+  const addonColumns: GridColDef[] = [
+    {
+      field: "addon_name",
+      headerName: "Add-on",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "addon_plan_name",
+      headerName: "Current Plan",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "balance_addon_value",
+      headerName: "Balance Left",
+      type: "number",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "grace",
+      headerName: "Grace",
+      type: "number",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "extend",
+      headerName: " ",
+      headerAlign: "center",
+      align: "center",
+      width: 100,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      renderCell: (params) => {
+        {
+          return (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{
+                  color: "primary.main",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  "&:hover": { color: "error.main" },
+                }}
+                onClick={() => handleExtendAddon(params.row.id)}
+              >
+                Extend
+              </Typography>
+            </Box>
+          );
+        }
+      },
+    },
+  ];
+
+  const handleAssignDealer = () => {
+    setIsAssignDealerModalOpen(true);
+  };
+
+  const handleExtendLicenseParam = (license_param_id: number) => {
+    const modalMap = {
+      [LICENSE_PARAM_VARIANT]: setIsExtendVariantModalOpen,
+      [LICENSE_PARAM_VALIDITY]: setIsExtendValidityModalOpen,
+      [LICENSE_PARAM_USERS]: setIsExtendUsersModalOpen,
+    };
+
+    modalMap[license_param_id]?.(true);
+  };
+
+  const handleExtendAddon = (license_param_id: number) => {
+    setIsExtendAddonModalOpen(true);
   };
 
   return (
@@ -189,13 +353,13 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "450px",
+            width: "900px",
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 2,
             borderRadius: 2,
             outline: "none",
-            textAlign: "center",
+            // textAlign: "center",
           }}
         >
           <Box
@@ -207,11 +371,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {licenseId ? (
-                <EditIcon sx={{ color: "primary.main" }} />
-              ) : (
-                <AddIcon sx={{ color: "primary.main" }} />
-              )}
+              <VisibilityIcon sx={{ color: "primary.main" }} />
               <Typography
                 variant="h6"
                 component="h2"
@@ -221,7 +381,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
                   fontWeight: "normal",
                 }}
               >
-                {licenseId ? "Edit License" : "Add License"}
+                License Details
               </Typography>
             </Box>
             <IconButton
@@ -238,39 +398,117 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
 
           <Divider sx={{ mb: 1 }} />
 
-          <form onSubmit={handleSubmit}>
-            <TextField
-              autoFocus
-              fullWidth
-              autoComplete="off"
-              label="Name"
-              name="name"
-              size="small"
-              margin="normal"
-              disabled={loading}
-              required
-              error={!!errors.name}
-              helperText={errors.name}
-              sx={{ mb: 2 }}
-              defaultValue={licenseData?.name || ""}
-              onChange={handleChange}
-            />
+          <Box sx={{ display: "flex", flexDirection: "column", mt: 2, mb: 2 }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "120px 10px auto",
+                alignItems: "center",
+                gap: 2,
+                mb: 2,
+              }}
+            >
+              <Typography sx={{ fontWeight: "bold" }}>License No.</Typography>
+              <Typography>:</Typography>
+              <Typography>{licenseDet?.license_no || ""}</Typography>
+            </Box>
 
             <Box
-              sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "120px 10px auto",
+                alignItems: "center",
+                gap: 2,
+              }}
             >
-              <Button onClick={onClose} disabled={loading} variant="outlined">
-                Quit
-              </Button>
-              <Button type="submit" variant="contained" disabled={loading}>
-                {loading ? (
-                  <CircularProgress size={24} sx={{ color: "white" }} />
-                ) : (
-                  "Save"
-                )}
+              <Typography sx={{ fontWeight: "bold" }}>Last Dealer</Typography>
+              <Typography>:</Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Typography>
+                  {licenseStatus?.dealer_name || "No Dealer Assigned"}
+                </Typography>
+                <Typography
+                  variant="body2"
+                  color="primary"
+                  sx={{
+                    fontWeight: "bold",
+                    cursor: "pointer",
+                    lineHeight: "normal",
+                    "&:hover": {
+                      color: "error.main",
+                    },
+                  }}
+                  onClick={handleAssignDealer}
+                >
+                  Assign Dealer
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+
+          <Box sx={{ height: "auto", mb: 4 }}>
+            <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
+              License Parameters
+            </Typography>
+            <DataGrid
+              rows={licenseRows}
+              columns={licenseColumns}
+              rowHeight={36}
+              columnHeaderHeight={36}
+              hideFooter
+              sx={{
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#fdfdfd",
+                  fontSize: "16px",
+                },
+                "& .MuiDataGrid-cell": {
+                  border: "none",
+                  fontSize: "16px",
+                },
+              }}
+            />
+          </Box>
+
+          <Box sx={{ height: "auto", mb: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 1,
+              }}
+            >
+              <Typography variant="h6" sx={{ color: "primary.main" }}>
+                Add-ons
+              </Typography>
+              <Button
+                variant="outlined"
+                // onClick={handleAddProduct}
+                disabled={loading}
+                size="small"
+                startIcon={<AddIcon />}
+              >
+                Add Add-on
               </Button>
             </Box>
-          </form>
+            <DataGrid
+              rows={addonStatus}
+              columns={addonColumns}
+              rowHeight={36}
+              columnHeaderHeight={36}
+              hideFooter
+              sx={{
+                "& .MuiDataGrid-columnHeader": {
+                  backgroundColor: "#fdfdfd",
+                  fontSize: "16px",
+                },
+                "& .MuiDataGrid-cell": {
+                  border: "none",
+                  fontSize: "16px",
+                },
+              }}
+            />
+          </Box>
         </Box>
       </Modal>
 
@@ -298,6 +536,41 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      <AssignDealer
+        open={isAssignDealerModalOpen}
+        licenseId={licenseId}
+        onClose={() => setIsAssignDealerModalOpen(false)}
+        onSave={() => fetchLicenseData()}
+      />
+
+      <ExtendVariant
+        open={isExtendVariantModalOpen}
+        licenseId={licenseId}
+        onClose={() => setIsExtendVariantModalOpen(false)}
+        onSave={() => fetchLicenseData()}
+      />
+
+      <ExtendValidity
+        open={isExtendValidityModalOpen}
+        licenseId={licenseId}
+        onClose={() => setIsExtendValidityModalOpen(false)}
+        onSave={() => fetchLicenseData()}
+      />
+
+      <ExtendUsers
+        open={isExtendUsersModalOpen}
+        licenseId={licenseId}
+        onClose={() => setIsExtendUsersModalOpen(false)}
+        onSave={() => fetchLicenseData()}
+      />
+
+      <ExtendAddon
+        open={isExtendAddonModalOpen}
+        licenseId={licenseId}
+        onClose={() => setIsExtendAddonModalOpen(false)}
+        onSave={() => fetchLicenseData()}
+      />
     </>
   );
 };

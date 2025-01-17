@@ -171,13 +171,16 @@ const OTPModal: React.FC<OTPModalProps> = ({
               }}
             >
               <TextField
-              autoFocus
+                autoFocus
                 type="number"
                 required
                 label="Email OTP"
                 disabled={loading}
                 value={emailOTP}
                 onChange={(e) => setEmailOTP(e.target.value)}
+                inputProps={{
+                  maxLength: 6,
+                }}
                 sx={{
                   "& .MuiInputBase-root": {
                     borderRadius: "12px",
@@ -191,6 +194,9 @@ const OTPModal: React.FC<OTPModalProps> = ({
                 disabled={loading}
                 value={phoneOTP}
                 onChange={(e) => setPhoneOTP(e.target.value)}
+                inputProps={{
+                  maxLength: 6,
+                }}
                 sx={{
                   "& .MuiInputBase-root": {
                     borderRadius: "12px",

@@ -11,36 +11,52 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Autocomplete,
 } from "@mui/material";
-import { saveAddon, loadAddon } from "@/app/controllers/addon.controller";
-import { addonSchemaT } from "@/app/utils/models";
-import { addonSchema } from "@/app/utils/zodschema";
 import ConfirmationModal from "./AskYesNo";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
-import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
-import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import {
+  loadLicenseDet,
+  loadLicenseStatus,
+  saveLicenseTran,
+} from "@/app/controllers/license.controller";
+import {
+  dealerSchemaT,
+  licenseDetSchemaT,
+  licenseStatusSchemaT,
+  licenseTranSchemaT,
+} from "@/app/utils/models";
+import { licenseTranSchema } from "@/app/utils/zodschema";
+import {
+  LICENSE_TRAN_ASSIGN_DEALER_2_LICENSE,
+  LICENSE_TRAN_NATURE_GENERAL,
+} from "@/app/utils/constants";
+import { loadDealerList } from "@/app/controllers/dealer.controller";
+import { initLicenseTranData } from "@/app/utils/common";
 
-const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
-const checkedIcon = <CheckBoxIcon fontSize="small" />;
-
-interface AddonModalProps {
+interface AssignDealerProps {
   open: boolean;
-  addonId?: number;
+  licenseId: number;
   onClose: () => void;
   onSave: () => void;
 }
 
-const AddonModal: React.FC<AddonModalProps> = ({
+const AssignDealer: React.FC<AssignDealerProps> = ({
   open,
-  addonId,
+  licenseId,
   onClose,
   onSave,
 }) => {
-  const [addonData, setAddonData] = useState<addonSchemaT | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [licenseDet, setLicenseDet] = useState<licenseDetSchemaT>();
+  const [licenseStatus, setLicenseStatus] = useState<licenseStatusSchemaT>();
+  const [dealers, setDealers] = useState<dealerSchemaT[]>([]);
+  const [selectedDealerId, setSelectedDealerId] = useState<number>(0);
+  const [selectedDealerValue, setSelectedDealerValue] =
+    useState<dealerSchemaT | null>(null);
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
     title: "",
@@ -57,17 +73,46 @@ const AddonModal: React.FC<AddonModalProps> = ({
   const hasLoadedData = useRef(false);
 
   useEffect(() => {
-    const fetchAddonData = async () => {
+    const fetchData = async () => {
       try {
         let proceed = true;
         let errMsg = "";
-        let result;
+        let result: { status: boolean; data?: any; message: string };
+        let currentDealerId: number = 0;
 
-        if (proceed && addonId) {
-          result = await loadAddon(addonId);
-          console.log(result);
+        setLoading(true);
+
+        if (proceed) {
+          result = await loadLicenseDet(licenseId);
+          if (!result.status) {
+            proceed = false;
+            errMsg = result.message;
+          } else {
+            setLicenseDet(result.data as licenseDetSchemaT);
+          }
+        }
+
+        if (proceed) {
+          result = await loadLicenseStatus(licenseId);
+          if (!result.status) {
+            proceed = false;
+            errMsg = result.message;
+          } else {
+            setLicenseStatus(result.data as licenseStatusSchemaT);
+            currentDealerId = result.data.last_dealer_id;
+          }
+        }
+
+        if (proceed) {
+          result = await loadDealerList();
+          console.log("dealers : ", result);
           if (result.status) {
-            setAddonData(result.data as addonSchemaT);
+            const loadedDealers = result.data as unknown as dealerSchemaT[];
+
+            const filteredDealers = loadedDealers.filter(
+              (dealer) => dealer.id !== currentDealerId
+            );
+            setDealers(filteredDealers);
           } else {
             proceed = false;
             errMsg = result.message;
@@ -93,48 +138,42 @@ const AddonModal: React.FC<AddonModalProps> = ({
     };
 
     if (open && !hasLoadedData.current) {
-      fetchAddonData();
+      fetchData();
       hasLoadedData.current = true;
     } else if (!open) {
-      setAddonData(null);
       setErrors({});
+      setSelectedDealerId(0);
+      setSelectedDealerValue(null);
       hasLoadedData.current = false;
     }
-  }, [addonId, open]);
+  }, [open]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    let baseData: Record<string, any> = addonId ? { ...addonData } : {};
+    const licenseTranData: licenseTranSchemaT = initLicenseTranData();
 
-    const formData = new FormData(e.currentTarget);
-    formData.forEach((value, key) => {
-      baseData[key] = value;
-    });
-
-    if (addonId) {
-      baseData = {
-        ...addonData,
-        ...Object.fromEntries(formData.entries()),
-      };
-    } else {
-      baseData = {
-        ...Object.fromEntries(formData.entries()),
-      };
+    licenseTranData.dealer_id = selectedDealerId;
+    licenseTranData.tran_type = LICENSE_TRAN_ASSIGN_DEALER_2_LICENSE;
+    licenseTranData.tran_nature = LICENSE_TRAN_NATURE_GENERAL;
+    if (licenseDet?.id) {
+      licenseTranData.license_id = licenseDet?.id;
     }
 
-    let addonResult = addonSchema.safeParse(baseData);
+    let result = licenseTranSchema.safeParse(licenseTranData);
 
-    if (addonResult.success) {
+    console.log("result : ", result);
+
+    if (result.success) {
       setConfirmationModal({
         open: true,
         title: "Confirm Save",
-        message: "Are you sure you want to save this addon?",
-        onConfirm: () => confirmSave(addonResult.data),
+        message: "Are you sure you want to save this transaction?",
+        onConfirm: () => confirmSave(result.data),
         onClose: () => {},
       });
     } else {
-      const validationErrors = addonResult.error.errors.reduce((acc, curr) => {
+      const validationErrors = result.error.errors.reduce((acc, curr) => {
         acc[curr.path[0]] = curr.message;
         return acc;
       }, {} as { [key: string]: string });
@@ -142,25 +181,25 @@ const AddonModal: React.FC<AddonModalProps> = ({
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name } = e.target;
-    setErrors((prevErrors) => {
-      const newErrors = { ...prevErrors };
-      delete newErrors[name];
-      return newErrors;
-    });
-  };
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const { name } = e.target;
+  //   setErrors((prevErrors) => {
+  //     const newErrors = { ...prevErrors };
+  //     delete newErrors[name];
+  //     return newErrors;
+  //   });
+  // };
 
-  const confirmSave = async (parsedAddonData: addonSchemaT) => {
+  const confirmSave = async (parsedData: licenseTranSchemaT) => {
     try {
       setLoading(true);
       setConfirmationModal({ ...confirmationModal, open: false });
 
-      const result = await saveAddon(parsedAddonData);
+      const result = await saveLicenseTran(parsedData);
       if (result.status) {
         setSnackbar({
           open: true,
-          message: "Addon saved successfully.",
+          message: "Dealer assigned successfully.",
           severity: "success",
         });
         onSave();
@@ -175,7 +214,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
     } catch (error) {
       setSnackbar({
         open: true,
-        message: "Error saving addon data.",
+        message: "Error assigning dealer.",
         severity: "error",
       });
     } finally {
@@ -185,6 +224,14 @@ const AddonModal: React.FC<AddonModalProps> = ({
 
   const handleSnackbarClose = () => {
     setSnackbar((prevState) => ({ ...prevState, open: false }));
+  };
+
+  const handleDealerChange = (
+    event: React.SyntheticEvent<Element, Event>,
+    value: any
+  ) => {
+    setSelectedDealerId(value?.id || 0);
+    setSelectedDealerValue(value);
   };
 
   return (
@@ -220,11 +267,6 @@ const AddonModal: React.FC<AddonModalProps> = ({
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {addonId ? (
-                <EditIcon sx={{ color: "primary.main" }} />
-              ) : (
-                <AddIcon sx={{ color: "primary.main" }} />
-              )}
               <Typography
                 variant="h6"
                 component="h2"
@@ -234,7 +276,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
                   fontWeight: "normal",
                 }}
               >
-                {addonId ? "Edit Addon" : "Add Addon"}
+                Assign Dealer
               </Typography>
             </Box>
             <IconButton
@@ -251,32 +293,69 @@ const AddonModal: React.FC<AddonModalProps> = ({
 
           <Divider />
 
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "120px 20px auto",
+              alignItems: "start",
+              mb: 2,
+              mt: 3,
+            }}
+          >
+            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+              License No.
+            </Typography>
+            <Typography sx={{ textAlign: "left" }}>:</Typography>
+            <Typography sx={{ textAlign: "left" }}>
+              {licenseDet?.license_no || ""}
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "120px 20px auto",
+              alignItems: "start",
+            }}
+          >
+            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+              Last Dealer
+            </Typography>
+            <Typography sx={{ textAlign: "left" }}>:</Typography>
+            <Typography sx={{ textAlign: "left" }}>
+              {licenseStatus?.dealer_name || ""}
+            </Typography>
+          </Box>
+
           <form onSubmit={handleSubmit}>
             {" "}
-            <TextField
-              autoFocus
-              fullWidth
-              autoComplete="off"
-              label="Name"
-              name="name"
-              size="small"
-              margin="normal"
-              disabled={loading}
-              required
-              error={!!errors.name}
-              helperText={errors.name}
-              sx={{ mb: 3, mt: 3 }}
-              defaultValue={addonData?.name || ""}
-              onChange={handleChange}
-            />
+            <Box sx={{ display: "flex", gap: 2, mb: 4, mt: 3 }}>
+              <Autocomplete
+                fullWidth
+                autoFocus
+                size="small"
+                disabled={loading}
+                options={dealers}
+                value={selectedDealerValue}
+                getOptionLabel={(option) => option.name}
+                onChange={handleDealerChange}
+                renderInput={(params) => (
+                  <TextField required {...params} label="Assign New Dealer" />
+                )}
+              />
+            </Box>
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 1 }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={loading || !selectedDealerId}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (
-                  "Save"
+                  "Assign"
                 )}
               </Button>
               <Button onClick={onClose} disabled={loading} variant="outlined">
@@ -315,4 +394,4 @@ const AddonModal: React.FC<AddonModalProps> = ({
   );
 };
 
-export default AddonModal;
+export default AssignDealer;

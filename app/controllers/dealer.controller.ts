@@ -2,6 +2,7 @@
 
 import {
   deleteDealerFromDB,
+  getDealerCreditBalanceFromDB,
   loadDealerByMappedUserFromDB,
   loadDealerFromDB,
   loadDealerListFromDB,
@@ -373,6 +374,35 @@ export async function loadDealerList() {
   try {
     if (proceed) {
       result = await loadDealerListFromDB();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function getDealerCreditBalance(dealer_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await getDealerCreditBalanceFromDB(dealer_id);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;

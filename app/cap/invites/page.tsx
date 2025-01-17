@@ -363,7 +363,7 @@ const Users = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: "primary.main" }}>
-              Invites
+              Invite Management
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2 }}>

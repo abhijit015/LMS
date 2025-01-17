@@ -133,6 +133,19 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           }}
         >
           <Button
+            ref={yesButtonRef}
+            autoFocus
+            variant="contained"
+            color="primary"
+            onClick={onConfirm}
+            sx={{
+              width: 100,
+              boxShadow: "none",
+            }}
+          >
+            Yes
+          </Button>
+          <Button
             color="primary"
             variant="outlined"
             onClick={onClose}
@@ -146,19 +159,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             }}
           >
             No
-          </Button>
-          <Button
-            ref={yesButtonRef}
-            autoFocus
-            variant="contained"
-            color="primary"
-            onClick={onConfirm}
-            sx={{
-              width: 100,
-              boxShadow: "none",
-            }}
-          >
-            Yes
           </Button>
         </Box>
       </Box>

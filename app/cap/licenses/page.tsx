@@ -26,16 +26,14 @@ import SearchIcon from "@mui/icons-material/Search";
 import Layout from "../layout";
 import ConfirmationModal from "../modalForms/AskYesNo";
 import LicenseModal from "../modalForms/License";
-import {
-  deleteLicense,
-  loadLicenseList,
-} from "@/app/controllers/license.controller";
-import EditIcon from "@mui/icons-material/Edit";
+import { loadLicenseList4Dealer } from "@/app/controllers/license.controller";
 import AddIcon from "@mui/icons-material/Add";
 
 interface LicenseList {
   id: number;
-  name: string;
+  license_no: string;
+  product_name: string;
+  entity_identifier: string;
 }
 
 const Licenses = () => {
@@ -43,9 +41,7 @@ const Licenses = () => {
   const [loading, setLoading] = useState(false);
   const [licenses, setLicenses] = useState<LicenseList[]>([]);
   const [filteredLicenses, setFilteredLicenses] = useState<LicenseList[]>([]);
-  const [selectedLicenseId, setSelectedLicenseId] = useState<number | null>(
-    null
-  );
+  const [selectedLicenseId, setSelectedLicenseId] = useState<number>(0);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -71,8 +67,8 @@ const Licenses = () => {
 
   const columns: GridColDef[] = [
     {
-      field: "name",
-      headerName: "Name",
+      field: "license_no",
+      headerName: "License No.",
       flex: 1,
       minWidth: 150,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
@@ -93,53 +89,20 @@ const Licenses = () => {
       ),
     },
     {
-      field: "actions",
-      headerName: "",
-      minWidth: 50,
-      align: "center",
-      headerAlign: "center",
+      field: "product_name",
+      headerName: "Product",
+      flex: 1,
+      minWidth: 150,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-      renderCell: (params: GridRenderCellParams) => (
-        <>
-          <IconButton
-            aria-label="more"
-            onClick={(event) => handleMenuClick(event, params.row.id)}
-            disabled={loading}
-          >
-            <MoreVertIcon />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            MenuListProps={{ "aria-labelledby": "basic-button" }}
-          >
-            <MenuItem
-              onClick={() => {
-                openConfirmationDialog();
-                handleMenuClose();
-              }}
-              sx={{ color: "error.main" }}
-            >
-              Delete
-            </MenuItem>
-          </Menu>
-        </>
-      ),
+    },
+    {
+      field: "entity_identifier",
+      headerName: "Business",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
   ];
-
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLElement>,
-    id: number
-  ) => {
-    setSelectedLicenseId(id);
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
 
   const handleSnackbarClose = () => {
     setSnackbar((prevState) => ({ ...prevState, open: false }));
@@ -148,7 +111,7 @@ const Licenses = () => {
   const fetchLicenses = async () => {
     setLoading(true);
     try {
-      const result = await loadLicenseList();
+      const result = await loadLicenseList4Dealer();
       if (result.status) {
         setLicenses(result.data as LicenseList[]);
       } else {
@@ -178,69 +141,28 @@ const Licenses = () => {
 
   useEffect(() => {
     setFilteredLicenses(
-      licenses.filter((license) =>
-        license.name.toLowerCase().includes(searchQuery.toLowerCase())
+      licenses.filter(
+        (license) =>
+          license.license_no
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          license.product_name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          license.entity_identifier
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
       )
     );
   }, [searchQuery, licenses]);
-
-  const handleAddLicense = () => {
-    setSelectedLicenseId(null);
-    setIsLicenseModalOpen(true);
-  };
 
   const handleEdit = (id: number) => {
     setSelectedLicenseId(id);
     setIsLicenseModalOpen(true);
   };
 
-  const openConfirmationDialog = () => {
-    setConfirmationModal((prev) => ({
-      ...prev,
-      open: true,
-      title: "Confirm Deletion",
-      message: "Are you sure you want to delete this license?",
-      onConfirm: () => handleDelete(),
-    }));
-  };
-
-  const handleDelete = async () => {
-    setLoading(true);
-    try {
-      if (selectedLicenseId) {
-        const result = await deleteLicense(selectedLicenseId);
-        if (result.status) {
-          setSnackbar({
-            open: true,
-            message: "License deleted successfully",
-            severity: "success",
-          });
-          await fetchLicenses();
-        } else {
-          setSnackbar({
-            open: true,
-            message: result.message,
-            severity: "error",
-          });
-        }
-      }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: String(error),
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
-  };
-
-  const handleLicenseSave = () => {
-    fetchLicenses();
   };
 
   return (
@@ -264,20 +186,10 @@ const Licenses = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: "primary.main" }}>
-              Licenses
+              Linked Licenses
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={handleAddLicense}
-                disabled={loading}
-                size="small"
-                startIcon={<AddIcon />}
-              >
-                Add License
-              </Button>
-
               <TextField
                 label="Search"
                 value={searchQuery}
@@ -351,9 +263,8 @@ const Licenses = () => {
 
       <LicenseModal
         open={isLicenseModalOpen}
-        licenseId={selectedLicenseId || undefined}
+        licenseId={selectedLicenseId}
         onClose={() => setIsLicenseModalOpen(false)}
-        onSave={handleLicenseSave}
       />
     </Layout>
   );

@@ -57,6 +57,8 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
     severity: "error" | "success" | "info" | "warning";
   }>({ open: false, message: "", severity: "info" });
 
+  const hasLoadedData = useRef(false);
+
   useEffect(() => {
     const fetchDepartmentData = async () => {
       let errMsg: string = "";
@@ -93,15 +95,13 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
       }
     };
 
-    if (open) {
-      if (!departmentId) {
-        setDepartmentData(null);
-      } else {
-        fetchDepartmentData();
-      }
-    } else {
+    if (open && !hasLoadedData.current) {
+      fetchDepartmentData();
+      hasLoadedData.current = true;
+    } else if (!open) {
       setDepartmentData(null);
       setErrors({});
+      hasLoadedData.current = false;
     }
   }, [departmentId, open]);
 
@@ -269,15 +269,15 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
             >
-              <Button onClick={onClose} disabled={loading} variant="outlined">
-                Quit
-              </Button>
               <Button type="submit" variant="contained" disabled={loading}>
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (
                   "Save"
                 )}
+              </Button>
+              <Button onClick={onClose} disabled={loading} variant="outlined">
+                Quit
               </Button>
             </Box>
           </form>

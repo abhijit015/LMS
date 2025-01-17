@@ -48,7 +48,7 @@ export async function loadRoleListFromDB() {
 
   try {
     if (proceed) {
-      query = `SELECT * from role_mast order by hierarchy`;
+      query = `SELECT * from role_mast where hierarchy>0 order by hierarchy`;
       result = await executeQueryInBusinessDB(query);
       if (result.length < 0) {
         proceed = false;

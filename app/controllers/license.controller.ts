@@ -1,28 +1,41 @@
 "use server";
 
-import { licenseSchema } from "../utils/zodschema";
 import {
   licenseDetSchemaT,
-  licenseSchemaT,
   licenseStatusSchemaT,
   licenseTranSchemaT,
   productSchemaT,
 } from "../utils/models";
 import {
-  deleteLicenseFromDB,
+  checkIfLicenseExists4ProductFromDB,
   generateLicenseInDB,
-  loadLicenseFromDB,
-  loadLicenseListFromDB,
-  saveLicenseInDB,
+  loadAddonStatus4LicenseFromDB,
+  loadLicenseDetFromDB,
+  loadLicenseList4DealerFromDB,
+  loadLicenseStatusFromDB,
+  loadLicenseTranFromDB,
+  runDBValidationB4GeneratingLicense,
+  runDBValidationB4SavingLicenseTran,
+  runDBValidationB4ValidatingLicenseExpiry,
+  saveLicenseTranInDB,
+  validateLicenseExpiryFromDB,
 } from "../services/license.service";
-import { getCurrentUserDet } from "./user.controller";
 import {
-  calculateExpiryDate,
+  calculateExpiryDateByDays,
+  calculateExpiryDateByMonths,
   initLicenseDetData,
   initLicenseStatusData,
   initLicenseTranData,
 } from "../utils/common";
 import { loadProduct } from "./product.controller";
+import {
+  LICENSE_TRAN_GENERATE_NEW_LICENSE,
+  LICENSE_TRAN_NATURE_FREE_VARIANT,
+  LICENSE_TRAN_NATURE_TRIAL_PERIOD,
+} from "../utils/constants";
+import { getCurrentDealerDet } from "./dealer.controller";
+import { licenseTranSchema } from "../utils/zodschema";
+import { getCurrentUserDet } from "./user.controller";
 
 export async function generateLicense(data: any) {
   let errMsg: string = "";
@@ -31,12 +44,11 @@ export async function generateLicense(data: any) {
   let licenseDet: licenseDetSchemaT = initLicenseDetData();
   let licenseStatus: licenseStatusSchemaT = initLicenseStatusData();
   let licenseTran: licenseTranSchemaT = initLicenseTranData();
-  let productData;
-  let variantData;
 
   try {
     const {
       product_id,
+      dealer_id,
       product_variant_id,
       entity_id,
       entity_identifier,
@@ -48,7 +60,23 @@ export async function generateLicense(data: any) {
     if (proceed) {
       result = await canLicenseBeGenerated(
         product_id,
+        dealer_id,
         product_variant_id,
+        entity_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await setDataB4GeneratingLicense(
+        product_id,
+        product_variant_id,
+        licenseDet,
+        licenseStatus,
+        licenseTran,
         entity_id,
         entity_identifier,
         contact_name,
@@ -61,6 +89,56 @@ export async function generateLicense(data: any) {
       }
     }
 
+    if (proceed) {
+      result = await generateLicenseInDB(
+        licenseDet,
+        licenseStatus,
+        licenseTran
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed
+        ? {
+            license_no: licenseDet.license_no,
+          }
+        : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+async function setDataB4GeneratingLicense(
+  product_id: number,
+  product_variant_id: number,
+  licenseDet: licenseDetSchemaT,
+  licenseStatus: licenseStatusSchemaT,
+  licenseTran: licenseTranSchemaT,
+  entity_id: number,
+  entity_identifier: string,
+  contact_name: string,
+  contact_phone: string,
+  contact_email: string
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let productData;
+  let variantData;
+
+  try {
     if (proceed) {
       result = await loadProduct(product_id);
       if (!result.status) {
@@ -94,62 +172,40 @@ export async function generateLicense(data: any) {
     //--------------------------------------
 
     //setting license status data---------------
-    if (proceed && variantData && variantData.no_of_months) {
+    if (proceed && variantData && variantData.no_of_days) {
       licenseStatus.product_variant_id = product_variant_id;
       licenseStatus.no_of_users = variantData.no_of_users;
       licenseStatus.current_users = 1;
 
       if (variantData.is_free_variant) {
       } else {
-        licenseStatus.expiry_date_without_grace = calculateExpiryDate(
-          variantData.no_of_months
+        licenseStatus.expiry_date = calculateExpiryDateByDays(
+          new Date(),
+          variantData.no_of_days
         );
-        licenseStatus.expiry_date_with_grace =
-          licenseStatus.expiry_date_without_grace;
       }
     }
     //------------------------------------------------
 
     //setting license tran data-----------------------
     if (proceed && variantData) {
-      licenseTran.tran_type = 1;
-      licenseTran.tran_nature = 1;
-      licenseTran.new_product_variant_id = product_variant_id;
-      licenseTran.current_no_of_users = 0;
-      licenseTran.current_no_of_months = 0;
-      licenseTran.modifed_no_of_users = 1;
-      licenseTran.balance_no_of_users = 1;
+      licenseTran.tran_type = LICENSE_TRAN_GENERATE_NEW_LICENSE;
+      licenseTran.tran_nature = variantData.is_free_variant
+        ? LICENSE_TRAN_NATURE_FREE_VARIANT
+        : LICENSE_TRAN_NATURE_TRIAL_PERIOD;
+      licenseTran.product_variant_id = product_variant_id;
+      licenseTran.no_of_users = licenseStatus.no_of_users;
+
       if (variantData.is_free_variant) {
       } else {
-        licenseTran.modifed_no_of_months = variantData.no_of_months;
-        licenseTran.balance_no_of_months = variantData.no_of_months;
-
-        licenseTran.new_expiry_date_with_grace = new Date("2026-12-31");
-        licenseTran.new_expiry_date_without_grace = new Date("2026-11-30");
+        licenseTran.no_of_months = variantData.no_of_days;
       }
     }
     //--------------------------------------------------
-
-    if (proceed) {
-      result = await generateLicenseInDB(
-        licenseDet,
-        licenseStatus,
-        licenseTran
-      );
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
     return {
       status: proceed,
       message: proceed ? "Success" : errMsg,
-      data: proceed
-        ? {
-            license_no: licenseDet.license_no,
-          }
-        : null,
+      data: null,
     };
   } catch (error) {
     return {
@@ -163,12 +219,9 @@ export async function generateLicense(data: any) {
 
 async function canLicenseBeGenerated(
   product_id: number,
+  dealer_id: number,
   product_variant_id: number,
-  entity_id: number,
-  entity_identifier: string,
-  contact_name: string,
-  contact_phone: string,
-  contact_email: string
+  entity_id: number
 ) {
   let errMsg: string = "";
   let proceed: boolean = true;
@@ -176,13 +229,24 @@ async function canLicenseBeGenerated(
 
   try {
     if (proceed) {
-      if (!product_id) {
+      if (!product_id || !product_variant_id || !entity_id) {
         proceed = false;
-        errMsg = "Product ID is required.";
+        errMsg = "product_id, variant_id, entity_id are required.";
       }
     }
 
-    //run db validations in a single functions
+    if (proceed) {
+      result = await runDBValidationB4GeneratingLicense(
+        product_id,
+        dealer_id,
+        product_variant_id
+      );
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
 
     return {
       status: proceed,
@@ -199,7 +263,247 @@ async function canLicenseBeGenerated(
   }
 }
 
-export async function setLicenseDataB4Saving(licenseData: licenseSchemaT) {
+export async function validateLicenseExpiry(data: any) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  try {
+    const { license_id } = data;
+
+    if (proceed) {
+      result = await validateDataB4ValidatingLicenseExpiry(license_id);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await validateLicenseExpiryFromDB(license_id);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function validateDataB4ValidatingLicenseExpiry(
+  license_id: number
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      if (!license_id) {
+        proceed = false;
+        errMsg = "License ID is required.";
+      }
+    }
+
+    if (proceed) {
+      result = await runDBValidationB4ValidatingLicenseExpiry(license_id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseList4Dealer() {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let dealerData;
+
+  try {
+    if (proceed) {
+      result = await getCurrentDealerDet();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        dealerData = result.data;
+      }
+    }
+
+    if (proceed) {
+      result = await loadLicenseList4DealerFromDB(dealerData.id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseStatus(license_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadLicenseStatusFromDB(license_id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseDet(license_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadLicenseDetFromDB(license_id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadAddonStatus4License(license_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadAddonStatus4LicenseFromDB(license_id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseTran(tran_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadLicenseTranFromDB(tran_id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function setLicenseTranDataB4Saving(
+  transactionData: licenseTranSchemaT
+) {
   let errMsg: string = "";
   let proceed: boolean = true;
   let userData;
@@ -217,11 +521,11 @@ export async function setLicenseDataB4Saving(licenseData: licenseSchemaT) {
     }
 
     if (proceed) {
-      if (!licenseData.id) {
-        licenseData.created_by = userData.id;
+      if (!transactionData.id) {
+        transactionData.created_by = userData.id;
       }
 
-      licenseData.updated_by = userData.id;
+      transactionData.updated_by = userData.id;
     }
 
     return {
@@ -230,7 +534,10 @@ export async function setLicenseDataB4Saving(licenseData: licenseSchemaT) {
       data: null,
     };
   } catch (error) {
-    console.error("Error while setting license data before saving :", error);
+    console.error(
+      "Error while setting license tran data before saving :",
+      error
+    );
     return {
       status: false,
       message:
@@ -240,14 +547,14 @@ export async function setLicenseDataB4Saving(licenseData: licenseSchemaT) {
   }
 }
 
-export async function saveLicense(licenseData: licenseSchemaT) {
+export async function saveLicenseTran(transactionData: licenseTranSchemaT) {
   let errMsg: string = "";
   let proceed: boolean = true;
   let result;
 
   try {
     if (proceed) {
-      result = await setLicenseDataB4Saving(licenseData);
+      result = await setLicenseTranDataB4Saving(transactionData);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -255,7 +562,7 @@ export async function saveLicense(licenseData: licenseSchemaT) {
     }
 
     if (proceed) {
-      result = await canLicenseBeSaved(licenseData);
+      result = await canLicenseTranBeSaved(transactionData);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -263,7 +570,7 @@ export async function saveLicense(licenseData: licenseSchemaT) {
     }
 
     if (proceed) {
-      result = await saveLicenseInDB(licenseData);
+      result = await saveLicenseTranInDB(transactionData);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -276,7 +583,7 @@ export async function saveLicense(licenseData: licenseSchemaT) {
       data: proceed ? result?.data : null,
     };
   } catch (error) {
-    console.error("Error saving license:", error);
+    console.error("Error saving license tran:", error);
     return {
       status: false,
       message:
@@ -286,20 +593,23 @@ export async function saveLicense(licenseData: licenseSchemaT) {
   }
 }
 
-export async function canLicenseBeSaved(licenseData: licenseSchemaT) {
+export async function canLicenseTranBeSaved(
+  transactionData: licenseTranSchemaT
+) {
   let errMsg: string = "";
   let proceed: boolean = true;
+  let result;
 
   try {
     if (proceed) {
-      if (!licenseData) {
+      if (!transactionData) {
         proceed = false;
-        errMsg = "License Data cannot be null.";
+        errMsg = "License Transaction Data cannot be null.";
       }
     }
 
     if (proceed) {
-      const parsed = licenseSchema.safeParse(licenseData);
+      const parsed = licenseTranSchema.safeParse(transactionData);
 
       if (!parsed.success) {
         errMsg = parsed.error.issues
@@ -309,36 +619,8 @@ export async function canLicenseBeSaved(licenseData: licenseSchemaT) {
       }
     }
 
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: null,
-    };
-  } catch (error) {
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function deleteLicense(licenseID: number) {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-
-  try {
     if (proceed) {
-      const result = await canLicenseBeDeleted(licenseID);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    if (proceed) {
-      const result = await deleteLicenseFromDB(licenseID);
+      result = await runDBValidationB4SavingLicenseTran(transactionData);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -360,65 +642,15 @@ export async function deleteLicense(licenseID: number) {
   }
 }
 
-export async function canLicenseBeDeleted(licenseID: number) {
+export async function checkIfLicenseExists4Product(product_id: number) {
   let errMsg: string = "";
   let proceed: boolean = true;
   let result;
-  try {
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: null,
-    };
-  } catch (error) {
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function loadLicense(license_id: number) {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-  let result;
-  let userId;
 
   try {
     if (proceed) {
-      result = await loadLicenseFromDB(license_id as number);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
+      result = await checkIfLicenseExists4ProductFromDB(product_id);
 
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: proceed ? result?.data : null,
-    };
-  } catch (error) {
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function loadLicenseList() {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-  let result;
-  let userData;
-
-  try {
-    if (proceed) {
-      result = await loadLicenseListFromDB();
       if (!result.status) {
         proceed = false;
         errMsg = result.message;

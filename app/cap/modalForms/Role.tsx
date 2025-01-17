@@ -266,15 +266,15 @@ const RoleModal: React.FC<RoleModalProps> = ({
                 mb: 1,
               }}
             >
-              <Button variant="outlined" onClick={onClose} disabled={loading}>
-                Quit
-              </Button>
               <Button type="submit" variant="contained" disabled={loading}>
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (
                   "Save"
                 )}
+              </Button>
+              <Button variant="outlined" onClick={onClose} disabled={loading}>
+                Quit
               </Button>
             </Box>
           </form>

@@ -18,7 +18,6 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { validateSignIn } from "../controllers/user.controller";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getBusinessIdFromCookies } from "../utils/cookies";
 import { checkIfBusinessLoggedIn } from "../controllers/business.controller";
 
 const SignIn: React.FC = () => {

@@ -7,7 +7,7 @@ import {
   setInviteDataB4Saving,
 } from "../controllers/invite.controller";
 import { getCurrentUserDet } from "../controllers/user.controller";
-import { initInviteData, licenseParamId2Name } from "../utils/common";
+import { initInviteData } from "../utils/common";
 import {
   ROLE_BUSINESS_ADMIN,
   USER_BUSINESS_MAPPING_STATUS_ACTIVE,
@@ -514,12 +514,17 @@ export async function deregisterFromBusinessInDB(business_id: number) {
           query =
             "update dealer_mast set mapped_user_id=0 where id=" +
             inviteData.entity_id;
+          await businessDBConn.query(query);
+
+          query =
+            "update executive_mast set mapped_user_id=0 where dealer_id=? and role_id=1";
+          await businessDBConn.query(query, [inviteData.entity_id]);
         } else {
           query =
             "update executive_mast set mapped_user_id=0 where id=" +
             inviteData.entity_id;
+          await businessDBConn.query(query);
         }
-        await businessDBConn.query(query);
       } catch (error) {
         proceed = false;
         (errMsg =
@@ -698,21 +703,24 @@ async function createBusinessDB(
       await conn.query(query);
 
       query = `INSERT INTO role_mast (name, hierarchy,updated_by) VALUES (?, ?, ?);`;
-      await conn.query(query, ["Junior Executive", 4, userData.id]);
+      await conn.query(query, ["Owner", 0, userData.id]);
 
       query = `INSERT INTO role_mast (name, hierarchy,updated_by) VALUES (?, ?, ?);`;
-      await conn.query(query, ["Senior Executive", 3, userData.id]);
+      await conn.query(query, ["Department Head", 1, userData.id]);
 
       query = `INSERT INTO role_mast (name, hierarchy,updated_by) VALUES (?, ?, ?);`;
       await conn.query(query, ["Manager", 2, userData.id]);
 
       query = `INSERT INTO role_mast (name, hierarchy,updated_by) VALUES (?, ?, ?);`;
-      await conn.query(query, ["Department Head", 1, userData.id]);
+      await conn.query(query, ["Senior Executive", 3, userData.id]);
+
+      query = `INSERT INTO role_mast (name, hierarchy,updated_by) VALUES (?, ?, ?);`;
+      await conn.query(query, ["Junior Executive", 4, userData.id]);
 
       query = `
         CREATE TABLE IF NOT EXISTS department_mast (
           id INT PRIMARY KEY AUTO_INCREMENT,
-          name VARCHAR(255) NOT NULL UNIQUE,
+          name VARCHAR(255) NOT NULL,
           dealer_id INT NULL,
           created_by INT NOT NULL,
           updated_by INT NOT NULL,
@@ -722,6 +730,9 @@ async function createBusinessDB(
         );
       `;
       await conn.query(query);
+
+      query = `INSERT INTO department_mast (name, created_by,updated_by) VALUES (?, ?, ?);`;
+      await conn.query(query, ["Admin", userData.id, userData.id]);
 
       query = `
         CREATE TABLE IF NOT EXISTS executive_mast (
@@ -744,6 +755,17 @@ async function createBusinessDB(
       `;
       await conn.query(query);
 
+      query = `INSERT INTO executive_mast (name, mapped_user_id, department_id, role_id, contact_name, created_by, updated_by) VALUES (?, ?, ?,?,?,?,?);`;
+      await conn.query(query, [
+        userData.name,
+        userData.id,
+        1,
+        1,
+        userData.name,
+        userData.id,
+        userData.id,
+      ]);
+
       query = `
         CREATE TABLE IF NOT EXISTS product_variants (
           id INT PRIMARY KEY AUTO_INCREMENT,
@@ -751,7 +773,7 @@ async function createBusinessDB(
           is_free_variant BOOLEAN NOT NULL DEFAULT(FALSE),
           product_id INT NOT NULL,
           no_of_users INT NULL,
-          no_of_months INT NULL,
+          no_of_days INT NULL,
           created_by INT NOT NULL,
           updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -782,7 +804,9 @@ async function createBusinessDB(
           price INT NOT NULL,
           early_discount_percentage INT NOT NULL,
           created_by INT NOT NULL,
+          updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (product_id) REFERENCES product_mast(id),
           FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
         );
@@ -801,7 +825,9 @@ async function createBusinessDB(
           price INT NOT NULL,
           grace INT NOT NULL,
           created_by INT NOT NULL,
+          updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (addon_id) REFERENCES addon_mast(id),
           FOREIGN KEY (product_id) REFERENCES product_mast(id),
           FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
@@ -820,7 +846,9 @@ async function createBusinessDB(
           discount_percentage INT NOT NULL,
           grace INT NULL,
           created_by INT NOT NULL,
+          updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (product_id) REFERENCES product_mast(id),
           FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
         );
@@ -837,30 +865,13 @@ async function createBusinessDB(
           end_value INT NOT NULL,
           discount_percentage INT NOT NULL,
           created_by INT NOT NULL,
+          updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (product_id) REFERENCES product_mast(id),
           FOREIGN KEY (product_variant_id) REFERENCES product_variants(id)
         );
       `;
-      await conn.query(query);
-
-      query = `
-        CREATE TABLE IF NOT EXISTS license_mast (
-          id INT PRIMARY KEY AUTO_INCREMENT,
-          license_no CHAR(8) NOT NULL UNIQUE,
-          product_id INT NOT NULL,
-          dealer_id INT NULL,
-          entity_id INT NOT NULL,
-          entity_identifier VARCHAR(255) NOT NULL,
-          contact_name VARCHAR(255) NULL,
-          contact_email VARCHAR(255) NULL,
-          contact_phone VARCHAR(255) NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-          FOREIGN KEY (product_id) REFERENCES product_mast(id),
-          FOREIGN KEY (dealer_id) REFERENCES dealer_mast(id)
-        );
-`;
       await conn.query(query);
 
       query = `
@@ -899,14 +910,16 @@ async function createBusinessDB(
           product_variant_id INT NOT NULL,
           no_of_users INT NOT NULL,
           current_users INT NOT NULL,
-          dealer_id INT NULL,
-          expiry_date_with_grace DATE NULL,
-          expiry_date_without_grace DATE NULL,
+          last_dealer_id INT NULL,
+          expiry_date DATE NULL,
+          grace INT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          created_by INT NOT NULL,
+          created_by INT NULL,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          updated_by INT NULL,
           FOREIGN KEY (license_id) REFERENCES license_det(id),
           FOREIGN KEY (product_variant_id) REFERENCES product_variants(id),
-          FOREIGN KEY (dealer_id) REFERENCES dealer_mast(id)
+          FOREIGN KEY (last_dealer_id) REFERENCES dealer_mast(id)
         );
       `;
       await conn.query(query);
@@ -914,27 +927,17 @@ async function createBusinessDB(
       query = `
         CREATE TABLE IF NOT EXISTS license_tran (
           id INT PRIMARY KEY AUTO_INCREMENT,
+          vch_no VARCHAR(255) NULL UNIQUE,
           license_id INT NOT NULL,
           tran_type INT NOT NULL,
-          old_product_variant_id INT NOT NULL,
-          new_product_variant_id INT NOT NULL,
-          current_no_of_users INT NULL,
-          modifed_no_of_users INT NULL,
-          balance_no_of_users INT NULL,
-          current_no_of_months INT NULL,
-          modifed_no_of_months INT NULL,
-          balance_no_of_months INT NULL,
-          old_dealer_id INT NULL,
-          new_dealer_id INT NULL,
-          current_expiry_date_with_grace DATE NULL,
-          current_expiry_date_without_grace DATE NULL,
-          new_expiry_date_with_grace DATE NULL,
-          new_expiry_date_without_grace DATE NULL,
+          product_variant_id INT NULL,
+          no_of_users INT NULL,
+          no_of_months INT NULL,
+          dealer_id INT NULL,
           addon_id INT NULL,
-          current_addon_plan_id INT NULL,
-          new_addon_plan_id INT NULL,
+          addon_plan_id INT NULL,
           remarks VARCHAR(255) NULL,
-          payment_type TINYINT NULL,
+          payment_mode TINYINT NULL,
           payment_ref_no VARCHAR(255) NULL,
           payment_amt INT NULL,
           scheme_id INT NULL,
@@ -944,13 +947,10 @@ async function createBusinessDB(
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (license_id) REFERENCES license_det(id),
-          FOREIGN KEY (old_product_variant_id) REFERENCES product_variants(id),
-          FOREIGN KEY (new_product_variant_id) REFERENCES product_variants(id),
-          FOREIGN KEY (old_dealer_id) REFERENCES dealer_mast(id),
-          FOREIGN KEY (new_dealer_id) REFERENCES dealer_mast(id),
+          FOREIGN KEY (product_variant_id) REFERENCES product_variants(id),
+          FOREIGN KEY (dealer_id) REFERENCES dealer_mast(id),
           FOREIGN KEY (addon_id) REFERENCES addon_mast(id),
-          FOREIGN KEY (current_addon_plan_id) REFERENCES addon_plan(id),
-          FOREIGN KEY (new_addon_plan_id) REFERENCES addon_plan(id),
+          FOREIGN KEY (addon_plan_id) REFERENCES addon_plan(id),
           FOREIGN KEY (scheme_id) REFERENCES scheme_mast(id)
         );
       `;
@@ -962,8 +962,8 @@ async function createBusinessDB(
           license_id INT NOT NULL,
           addon_id INT NULL,
           addon_plan_id INT NULL,
-          balance_addon_value_with_grace INT NOT NULL,
-          balance_addon_value_without_grace INT NOT NULL,
+          balance_addon_value INT NOT NULL,
+          grace INT NULL,
           created_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (license_id) REFERENCES license_det(id),
@@ -974,34 +974,23 @@ async function createBusinessDB(
       await conn.query(query);
 
       query = `
-        CREATE TABLE IF NOT EXISTS dealer_credits_status (
+        CREATE TABLE IF NOT EXISTS dealer_credit_tran (
           id INT PRIMARY KEY AUTO_INCREMENT,
-          dealer_id INT NOT NULL,
-          balance_credits INT NOT NULL,
-          created_by INT NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (dealer_id) REFERENCES dealer_mast(id)
-        );
-      `;
-      await conn.query(query);
-
-      query = `
-        CREATE TABLE IF NOT EXISTS dealer_credits_ledger (
-          id INT PRIMARY KEY AUTO_INCREMENT,
+          vch_no VARCHAR(255) NULL UNIQUE,
           dealer_id INT NULL,
           tran_type INT NOT NULL,
-          tran_id INT NULL,
-          current_credits INT NOT NULL,
-          consumed_credits INT NOT NULL,
-          balance_credits INT NOT NULL,
-          ref_no VARCHAR(255) NULL,
+          license_tran_id INT NULL,
+          modified_credits INT NOT NULL,
+          invoice_no VARCHAR(255) NULL,
+          invoice_date DATE NULL,
+          tran_date DATE NOT NULL,
           remarks VARCHAR(255) NULL,
           created_by INT NOT NULL,
           updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           FOREIGN KEY (dealer_id) REFERENCES dealer_mast(id),
-          FOREIGN KEY (tran_id) REFERENCES license_tran(id)
+          FOREIGN KEY (license_tran_id) REFERENCES license_tran(id)
         );
       `;
       await conn.query(query);

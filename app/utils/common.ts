@@ -11,17 +11,11 @@ import {
   USER_BUSINESS_MAPPING_STATUS_DISABLED,
   INVITE_STATUS_DEREGISTERED,
   LICENSE_PARAM_USERS,
-  LICENSE_PARAM_VALID_UPTO,
+  LICENSE_PARAM_VALIDITY,
   LICENSE_PARAM_VARIANT,
 } from "./constants";
-import {
-  inviteSchemaT,
-  dealerSchemaT,
-  executiveSchemaT,
-  addonSchemaT,
-} from "./models";
+import { inviteSchemaT, dealerSchemaT, addonSchemaT } from "./models";
 
-// Role
 export const roleName2Id = (roleName: string): number => {
   switch (roleName) {
     case "Business Admin":
@@ -116,7 +110,7 @@ export const licenseParamName2Id = (licenseParamName: string): number => {
     case "Variant":
       return LICENSE_PARAM_VARIANT;
     case "Valid Upto":
-      return LICENSE_PARAM_VALID_UPTO;
+      return LICENSE_PARAM_VALIDITY;
     case "Users":
       return LICENSE_PARAM_USERS;
     default:
@@ -128,8 +122,8 @@ export const licenseParamId2Name = (licenseParamId: number): string => {
   switch (licenseParamId) {
     case LICENSE_PARAM_VARIANT:
       return "Variant";
-    case LICENSE_PARAM_VALID_UPTO:
-      return "Valid Upto";
+    case LICENSE_PARAM_VALIDITY:
+      return "Validity";
     case LICENSE_PARAM_USERS:
       return "Users";
     default:
@@ -175,26 +169,20 @@ export function initAddonData(): addonSchemaT {
   };
 }
 
-export function initExecutiveData(): executiveSchemaT {
+export function initDepartmentData() {
   return {
-    id: 0,
+    id: undefined,
     name: "",
-    contact_name: "",
-    contact_identifier: "",
-    dealer_id: 0,
-    department_id: 0,
-    role_id: 0,
-    send_invitation: false,
-    invite_id: 0,
-    created_by: 0,
-    updated_by: 0,
+    dealer_id: null,
+    created_by: undefined,
+    updated_by: undefined,
   };
 }
 
 export function loadLicenseParams(): { id: number; name: string }[] {
   const licenseParamIds = [
     LICENSE_PARAM_VARIANT,
-    LICENSE_PARAM_VALID_UPTO,
+    LICENSE_PARAM_VALIDITY,
     LICENSE_PARAM_USERS,
   ];
 
@@ -225,9 +213,12 @@ export function initLicenseStatusData() {
     no_of_users: 0,
     current_users: 0,
     dealer_id: null,
+    dealer_name: "",
+    product_variant_name: "",
     expiry_date_with_grace: null,
     expiry_date_without_grace: null,
-    created_by: 0,
+    created_by: null,
+    updated_by: null,
   };
 }
 
@@ -236,25 +227,14 @@ export function initLicenseTranData() {
     id: 0,
     license_id: 0,
     tran_type: 0,
-    old_product_variant_id: null,
-    new_product_variant_id: null,
-    current_no_of_users: null,
-    modifed_no_of_users: null,
-    balance_no_of_users: null,
-    current_no_of_months: null,
-    modifed_no_of_months: null,
-    balance_no_of_months: null,
-    old_dealer_id: null,
-    new_dealer_id: null,
-    current_expiry_date_with_grace: null,
-    current_expiry_date_without_grace: null,
-    new_expiry_date_with_grace: null,
-    new_expiry_date_without_grace: null,
+    product_variant_id: null,
+    no_of_users: null,
+    no_of_months: null,
+    dealer_id: null,
     addon_id: null,
-    current_addon_plan_id: null,
-    new_addon_plan_id: null,
+    addon_plan_id: null,
     remarks: "",
-    payment_type: null,
+    payment_mode: null,
     payment_ref_no: "",
     payment_amt: null,
     tran_nature: 0,
@@ -268,49 +248,110 @@ export function initAddonStatusData() {
   return {
     id: 0,
     license_id: 0,
-    addon_id: null,
-    addon_plan_id: null,
-    balance_addon_value_with_grace: 0,
-    balance_addon_value_without_grace: 0,
+    addon_id: 0,
+    addon_plan_id: 0,
+    balance_addon_value: 0,
+    grace: null,
     created_by: 0,
   };
 }
 
-export function initDealerCreditsStatusData() {
+// export function initDealerCreditLedgerData() {
+//   return {
+//     id: 0,
+//     dealer_id: null,
+//     tran_type: 0,
+//     tran_id: null,
+//     modified_credits: 0,
+//     ref_no: "",
+//     remarks: "",
+//     created_by: 0,
+//     updated_by: 0,
+//   };
+// }
+export function initDealerCreditLedgerData() {
   return {
     id: 0,
-    dealer_id: 0,
-    balance_credits: 0,
-    created_by: 0,
-  };
-}
-
-export function initDealerCreditsLedgerData() {
-  return {
-    id: 0,
+    vch_no: null,
     dealer_id: null,
     tran_type: 0,
-    tran_id: null,
-    current_credits: 0,
-    consumed_credits: 0,
-    balance_credits: 0,
-    ref_no: "",
-    remarks: "",
-    created_by: 0,
-    updated_by: 0,
+    license_tran_id: null,
+    modified_credits: 0,
+    invoice_no: null,
+    invoice_date: null,
+    tran_date: new Date(),
+    remarks: null,
+    created_by: null,
+    updated_by: null,
   };
 }
 
-export function calculateExpiryDate(months: number): Date {
-  const currentDate = new Date();
+export function initExecutiveData() {
+  return {
+    id: undefined,
+    name: "",
+    mapped_user_id: null,
+    invite_id: undefined,
+    department_id: 0,
+    role_id: 0,
+    dealer_id: null,
+    contact_name: "",
+    contact_identifier: "",
+    send_invitation: false,
+    inviteStatus: undefined,
+    created_by: undefined,
+    updated_by: undefined,
+    executiveStatus: 0,
+  };
+}
 
-  const currentDay = currentDate.getDate();
-  const currentMonth = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
+// export function calculateExpiryDateByMonths(
+//   startDate: Date,
+//   months: number
+// ): Date {
+//   const currentDay = startDate.getDate();
+//   const currentMonth = startDate.getMonth();
+//   const currentYear = startDate.getFullYear();
+
+//   const targetMonth = currentMonth + months;
+//   const targetYear = currentYear + Math.floor(targetMonth / 12);
+//   const adjustedMonth = targetMonth % 12;
+
+//   const lastDayOfTargetMonth = new Date(
+//     targetYear,
+//     adjustedMonth + 1,
+//     0
+//   ).getDate();
+
+//   const expiryDay = Math.min(currentDay - 1, lastDayOfTargetMonth);
+
+//   return new Date(
+//     targetYear,
+//     adjustedMonth,
+//     expiryDay > 0 ? expiryDay : lastDayOfTargetMonth
+//   );
+// }
+
+export function calculateExpiryDateByMonths(
+  startDate: Date,
+  months: number
+): Date | null {
+  if (!Number.isFinite(months) || months < 0) {
+    return null; // Invalid input for months
+  }
+
+  const currentDay = startDate.getDate();
+  const currentMonth = startDate.getMonth();
+  const currentYear = startDate.getFullYear();
 
   const targetMonth = currentMonth + months;
   const targetYear = currentYear + Math.floor(targetMonth / 12);
   const adjustedMonth = targetMonth % 12;
+
+  // Check for date limits (e.g., prevent dates beyond the year 9999)
+  if (targetYear > 9999 || targetYear < 0) {
+    return null; // Return null for unrealistic dates
+  }
 
   const lastDayOfTargetMonth = new Date(
     targetYear,
@@ -325,4 +366,69 @@ export function calculateExpiryDate(months: number): Date {
     adjustedMonth,
     expiryDay > 0 ? expiryDay : lastDayOfTargetMonth
   );
+}
+
+export function calculateExpiryDateByDays(startDate: Date, days: number): Date {
+  const expiryDate = new Date(startDate);
+  expiryDate.setDate(expiryDate.getDate() + days);
+  return expiryDate;
+}
+
+export function formatDate(dateInput: Date | null | undefined): string {
+  if (!dateInput) {
+    return "";
+  }
+  const day = dateInput.getDate();
+  const month = dateInput.toLocaleString("default", { month: "short" });
+  const year = dateInput.getFullYear();
+
+  return `${day} ${month} ${year}`;
+}
+
+export function formatNum(value: number | null | undefined): string {
+  if (value === undefined || value === null || isNaN(value)) {
+    return "0";
+  }
+
+  const numStr = value.toString();
+
+  const [integerPart, decimalPart] = numStr.split(".");
+
+  const formattedIntegerPart = integerPart.replace(
+    /\B(?=(\d{3})+(?!\d))/g,
+    ","
+  );
+
+  return decimalPart
+    ? `${formattedIntegerPart}.${decimalPart}`
+    : formattedIntegerPart;
+}
+
+export function getPendingMonthsFromExpiry(
+  expiryDate: Date | null | undefined
+): number {
+  const currentDate = new Date();
+
+  if (
+    expiryDate === undefined ||
+    expiryDate === null ||
+    expiryDate <= currentDate
+  ) {
+    return 0;
+  }
+
+  const yearDiff = expiryDate.getFullYear() - currentDate.getFullYear();
+  const monthDiff = expiryDate.getMonth() - currentDate.getMonth();
+
+  let totalMonths = yearDiff * 12 + monthDiff;
+
+  const daysDiff = expiryDate.getDate() - currentDate.getDate();
+
+  if (daysDiff > 15) {
+    totalMonths += 1;
+  } else if (daysDiff < 0) {
+    totalMonths -= 1;
+  }
+
+  return Math.max(totalMonths, 0);
 }

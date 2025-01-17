@@ -54,6 +54,42 @@ export async function loadProductFromDB(id: number) {
   }
 }
 
+export async function loadVariantFromDB(id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let variantData: any = null;
+  let result;
+  let query;
+
+  try {
+    if (proceed) {
+      query = `SELECT * FROM product_variants WHERE id = ?`;
+      result = await executeQueryInBusinessDB(query, [id]);
+
+      if (result.length > 0) {
+        variantData = result[0];
+      } else {
+        proceed = false;
+        errMsg = "Variant not found.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Variant loaded successfully." : errMsg,
+      data: variantData,
+    };
+  } catch (error) {
+    console.error("Error loading Variant:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Error loading Variant.",
+      data: null,
+    };
+  }
+}
+
 export async function loadProductListFromDB() {
   let proceed: boolean = true;
   let errMsg: string = "";
@@ -218,50 +254,6 @@ export async function saveProductInDB(productData: productSchemaT) {
       }
     }
 
-    // if (proceed) {
-    //   query = `DELETE FROM product_variants WHERE product_id = ?`;
-    //   result = await executeQueryInBusinessDB(
-    //     query,
-    //     [productData.id],
-    //     connection
-    //   );
-
-    //   if (result.affectedRows < 0) {
-    //     proceed = false;
-    //     errMsg = "Error deleting product_variants.";
-    //   }
-    // }
-
-    // if (proceed && productData.variants) {
-    //   query = `
-    //     INSERT INTO product_variants ( name, product_id,is_free_variant, no_of_users, no_of_months,created_by)
-    //     VALUES (?, ?, ?, ?,?,?)
-    //   `;
-
-    //   for (const variants of productData.variants) {
-    //     const values = [
-    //       variants.name,
-    //       productData.id,
-    //       variants.is_free_variant,
-    //       variants.no_of_users,
-    //       variants.no_of_months,
-    //       variants.created_by,
-    //     ];
-
-    //     result = await executeQueryInBusinessDB(query, values, connection);
-
-    //     if (result.affectedRows < 1) {
-    //       proceed = false;
-    //       errMsg = "Error saving one of the product_variants.";
-    //       break;
-    //     } else {
-    //       if (!variants.id) {
-    //         variants.id = result.insertId;
-    //       }
-    //     }
-    //   }
-    // }
-
     if (proceed && productData.variants) {
       query = `SELECT id FROM product_variants WHERE product_id = ?`;
       const existingVariants = await executeQueryInBusinessDB(
@@ -271,7 +263,7 @@ export async function saveProductInDB(productData: productSchemaT) {
       );
 
       const existingVariantIds = existingVariants.map(
-        (variant: any) => variant.id
+        (variant: productVariantsSchemaT) => variant.id
       );
       const newVariantIds = productData.variants
         .map((variant) => variant.id)
@@ -302,7 +294,7 @@ export async function saveProductInDB(productData: productSchemaT) {
               name = ?,
               is_free_variant = ?,
               no_of_users = ?,
-              no_of_months = ?,
+              no_of_days = ?,
               updated_by = ?
             WHERE id = ?
           `;
@@ -310,13 +302,13 @@ export async function saveProductInDB(productData: productSchemaT) {
             variant.name,
             variant.is_free_variant,
             variant.no_of_users,
-            variant.no_of_months,
+            variant.no_of_days,
             productData.updated_by,
             variant.id,
           ];
         } else {
           query = `
-            INSERT INTO product_variants (name, product_id, is_free_variant, no_of_users, no_of_months, created_by,updated_by)
+            INSERT INTO product_variants (name, product_id, is_free_variant, no_of_users, no_of_days, created_by,updated_by)
             VALUES (?, ?, ?, ?, ?, ?,?)
           `;
           values = [
@@ -324,7 +316,7 @@ export async function saveProductInDB(productData: productSchemaT) {
             productData.id,
             variant.is_free_variant,
             variant.no_of_users,
-            variant.no_of_months,
+            variant.no_of_days,
             productData.created_by,
             productData.updated_by,
           ];

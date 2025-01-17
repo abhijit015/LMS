@@ -5,7 +5,7 @@ import { inviteSchemaT } from "../utils/models";
 import { executeQueryInUserDB, getDBConn, getUserDBConn } from "../utils/db";
 import {
   getCurrentBusinessDet,
-  getCurrentRole,
+  getCurrentUserRole,
 } from "../controllers/business.controller";
 import { getCurrentUserDet } from "../controllers/user.controller";
 import {
@@ -76,7 +76,7 @@ export async function loadInvite4CurrentBusinessFromDB() {
     }
 
     if (proceed) {
-      result = await getCurrentRole();
+      result = await getCurrentUserRole();
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -306,22 +306,29 @@ export async function saveInviteInDB(
 
           await businessDBConn.beginTransaction();
 
-          if (proceed) {
-            if (inviteData.role === ROLE_DEALER_ADMIN) {
-              query =
-                "update dealer_mast set mapped_user_id=? where invite_id=?";
-            } else {
-              query =
-                "update executive_mast set mapped_user_id=? where invite_id=?";
-            }
+          if (inviteData.role === ROLE_DEALER_ADMIN) {
+            query = "update dealer_mast set mapped_user_id=? where invite_id=?";
+            const dealerUpdateResult = await businessDBConn.query(query, [
+              userData.id,
+              inviteData.id,
+            ]);
+
+            query = "SELECT id FROM dealer_mast WHERE invite_id = ?";
+            const dealerResult = await businessDBConn.query(query, [
+              inviteData.id,
+            ]);
+            const dealerId = dealerResult[0]?.id;
+
+            query =
+              "update executive_mast set mapped_user_id=? where dealer_id=? and role_id=1";
+            await businessDBConn.query(query, [userData.id, dealerId]);
+          } else {
+            query =
+              "update executive_mast set mapped_user_id=? where invite_id=?";
             await businessDBConn.query(query, [userData.id, inviteData.id]);
           }
 
-          if (proceed) {
-            await businessDBConn.commit();
-          } else {
-            await businessDBConn.rollback();
-          }
+          await businessDBConn.commit();
         } catch (error) {
           if (businessDBConn) await businessDBConn.rollback();
           proceed = false;

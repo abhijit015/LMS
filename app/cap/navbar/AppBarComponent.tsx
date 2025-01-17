@@ -22,6 +22,13 @@ import { redirect } from "next/navigation";
 import { businessSchemaT, userSchemaT } from "@/app/utils/models";
 import { clearUserIdCookie, clearBusinessCookie } from "@/app/utils/cookies";
 import Link from "next/link";
+import {
+  ROLE_BUSINESS_ADMIN,
+  ROLE_DEALER_ADMIN,
+  ROLE_DEALER_EXECUTIVE,
+} from "@/app/utils/constants";
+import BusinessModal from "../modalForms/Business";
+import { formatNum } from "@/app/utils/common";
 
 const NoSSR = dynamic(
   () =>
@@ -33,11 +40,20 @@ const AppBarComponent: React.FC<{
   userData: userSchemaT | null;
   businessData: businessSchemaT | null;
   isBusinessSelected: boolean;
-}> = ({ userData, businessData, isBusinessSelected }) => {
+  currentUserRole: number;
+  totalCreditsAssigned: number;
+}> = ({
+  userData,
+  businessData,
+  isBusinessSelected,
+  currentUserRole,
+  totalCreditsAssigned,
+}) => {
   const [isClient, setIsClient] = useState(false);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -72,15 +88,24 @@ const AppBarComponent: React.FC<{
     redirect("/cap/profile");
   };
 
-  const handleBusiness = async () => {
+  const handleSwitchBusiness = async () => {
     setLoading(true);
     handleClose();
     await clearBusinessCookie();
     redirect("/cap/business");
   };
 
+  const handleModifyBusiness = async () => {
+    handleClose();
+    setIsBusinessModalOpen(true);
+  };
+
   const handleDrawerToggle = () => {
     setOpen(!open);
+  };
+
+  const handleBusinessSave = () => {
+    window.location.reload();
   };
 
   return (
@@ -88,21 +113,14 @@ const AppBarComponent: React.FC<{
       <AppBar
         position="fixed"
         sx={{
-          // bgcolor: "#fefefe",
           bgcolor: "white",
           color: "#444444",
           borderBottom: "1px solid #e0e0e0",
           boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
         }}
       >
-        <Toolbar
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Toolbar>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
             {isBusinessSelected && isClient && (
               <IconButton
                 color="inherit"
@@ -113,7 +131,6 @@ const AppBarComponent: React.FC<{
                 <MenuIcon />
               </IconButton>
             )}
-
             <Link
               href="https://algofast.in/"
               target="_blank"
@@ -144,86 +161,131 @@ const AppBarComponent: React.FC<{
               </Typography>
             </Link>
           </Box>
+          <Box>
+            {isBusinessSelected && businessData?.name && (
+              <Typography
+                variant="h6"
+                sx={{
+                  // color: "primary.main",
+                  flex: 1,
+                  textAlign: "center",
+                }}
+              >
+                {businessData.name}
+              </Typography>
+            )}
 
-          {isBusinessSelected && businessData?.name && (
-            <Typography
-              variant="h6"
-              sx={{
-                color: "primary.dark",
-                // fontWeight: 550,
-                // color: "#2A2A2A",
-                // color: "#1F2F5C",
-                position: "absolute",
-                left: "50%",
-                transform: "translateX(-50%)",
-              }}
-            >
-              {businessData.name}
-            </Typography>
-          )}
-
-          <NoSSR>
-            {userData?.name && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Avatar
-                  sx={{
-                    bgcolor: "primary.dark",
-                    width: 40,
-                    height: 35,
-                  }}
-                >
-                  {getInitials(userData.name)}
-                </Avatar>
+            {isBusinessSelected &&
+              (currentUserRole === ROLE_DEALER_ADMIN ||
+                currentUserRole === ROLE_DEALER_EXECUTIVE) && (
                 <Box
-                  onClick={handleClick}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    cursor: "pointer",
-                  }}
+                  sx={{ flex: 1, display: "flex", justifyContent: "center" }}
                 >
                   <Typography
                     sx={{
                       color: "primary.main",
+                      // bgcolor: "primary.lighter",
+                      px: 2,
+                      py: 0.5,
+                      borderRadius: 1,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      transition: "all 0.2s ease-in-out",
                       "&:hover": {
                         color: "error.main",
+                        transform: "scale(1.02)",
                       },
                     }}
                   >
-                    {userData.name}
-                    <ArrowDropDownIcon />
+                    Credits Available: {formatNum(totalCreditsAssigned)}
                   </Typography>
                 </Box>
-              </Box>
-            )}
-
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-            >
-              <MenuItem onClick={handleProfile}>My Profile</MenuItem>
-              {isBusinessSelected && (
-                <MenuItem onClick={handleBusiness}>Switch Business</MenuItem>
               )}
-              <MenuItem onClick={handleLogout}>Sign Out</MenuItem>
-            </Menu>
-          </NoSSR>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              flex: 1,
+              justifyContent: "flex-end",
+            }}
+          >
+            <NoSSR>
+              {userData?.name && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Avatar
+                    sx={{
+                      bgcolor: "primary.main",
+                      width: 40,
+                      height: 35,
+                    }}
+                  >
+                    {getInitials(userData.name)}
+                  </Avatar>
+                  <Box
+                    onClick={handleClick}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        color: "primary.main",
+                        "&:hover": {
+                          color: "error.main",
+                        },
+                      }}
+                    >
+                      {userData.name}
+                      <ArrowDropDownIcon />
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleClose}
+                anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                transformOrigin={{ vertical: "top", horizontal: "right" }}
+              >
+                <MenuItem onClick={handleProfile}>My Profile</MenuItem>
+                {isBusinessSelected && (
+                  <>
+                    {currentUserRole === ROLE_BUSINESS_ADMIN && (
+                      <MenuItem onClick={handleModifyBusiness}>
+                        Modify Business Details
+                      </MenuItem>
+                    )}
+                    <MenuItem onClick={handleSwitchBusiness}>
+                      Switch Business
+                    </MenuItem>
+                  </>
+                )}
+                <MenuItem onClick={handleLogout}>Sign Out</MenuItem>
+              </Menu>
+            </NoSSR>
+          </Box>
         </Toolbar>
       </AppBar>
-
+      <BusinessModal
+        open={isBusinessModalOpen}
+        businessId={businessData?.id || null}
+        onClose={() => setIsBusinessModalOpen(false)}
+        onSave={handleBusinessSave}
+      />
       {isClient && (
         <>
           <Drawer
             sx={{
               "& .MuiDrawer-paper": {
                 boxSizing: "border-box",
-                minWidth: "210px",
-                // bgcolor: "#1F2F5C",
-                color: "#FFFFFF",
-                bgcolor: "primary.dark",
+                minWidth: "270px",
               },
             }}
             variant="temporary"

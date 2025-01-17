@@ -55,7 +55,7 @@ import ConfirmationModal from "../modalForms/AskYesNo";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {
   LICENSE_PARAM_USERS,
-  LICENSE_PARAM_VALID_UPTO,
+  LICENSE_PARAM_VALIDITY,
   LICENSE_PARAM_VARIANT,
   USER_BUSINESS_MAPPING_STATUS_DISABLED,
 } from "@/app/utils/constants";
@@ -119,10 +119,10 @@ const Pricing = (): JSX.Element => {
     severity: "error" | "success" | "info" | "warning";
   }>({ open: false, message: "", severity: "info" });
   const [addons, setAddons] = useState<addonSchemaT[]>([]);
-  const [products, setProducts] = useState<productSchemaT[]>([]);
+
   const [parameterType, setParameterType] = useState(PARAMETER_TYPE_LICENSE);
   const [selectedParameterId, setSelectedParameterId] = useState<number>(0);
-  const [selectedProductId, setSelectedProductId] = useState<number>(0);
+
   const [selectedVariantId, setSelectedVariantId] = useState<number>(0);
   const [rows, setRows] = React.useState<GridRowsProp>([]);
   const [rowModesModel, setRowModesModel] = React.useState<GridRowModesModel>(
@@ -133,6 +133,10 @@ const Pricing = (): JSX.Element => {
 
   const [selectedAddonValue, setSelectedAddonValue] =
     useState<addonSchemaT | null>(null);
+
+  const [products, setProducts] = useState<productSchemaT[]>([]);
+
+  const [selectedProductId, setSelectedProductId] = useState<number>(0);
 
   const [selectedProductValue, setSelectedProductValue] =
     useState<productSchemaT | null>(null);
@@ -159,7 +163,7 @@ const Pricing = (): JSX.Element => {
       if (proceed) {
         result = await loadProductList();
         if (result.status) {
-          setProducts(result.data as productSchemaT[]);
+          setProducts(result.data as unknown as productSchemaT[]);
         } else {
           proceed = false;
           errMsg = result.message;
@@ -291,7 +295,7 @@ const Pricing = (): JSX.Element => {
               setUserDiscountSlabHistory(result.data);
             }
           }
-        } else if (selectedParameterId === LICENSE_PARAM_VALID_UPTO) {
+        } else if (selectedParameterId === LICENSE_PARAM_VALIDITY) {
           if (proceed) {
             result = await loadActiveValidityDiscountSlabs(
               selectedProductId,
@@ -374,11 +378,14 @@ const Pricing = (): JSX.Element => {
     console.log("rows : ", rows);
 
     rows.forEach((row, rowIndex) => {
+      row.rowIndex = rowIndex + 1;
       row.product_id = selectedProductId;
       row.product_variant_id = selectedVariantId;
+
       if (parameterType === PARAMETER_TYPE_ADDON) {
         row.addon_id = selectedParameterId;
       }
+
       const parsed = schema.safeParse(row);
       if (!parsed.success) {
         const issues = parsed.error.issues
@@ -386,9 +393,49 @@ const Pricing = (): JSX.Element => {
           .join("; ");
         validationErrors += `Row ${rowIndex + 1}: ${issues} | `;
       } else {
-        parsedData.push(parsed.data);
+        parsedData.push({ ...parsed.data, rowIndex: rowIndex + 1 });
       }
     });
+
+    if (
+      selectedParameterId === LICENSE_PARAM_USERS ||
+      selectedParameterId === LICENSE_PARAM_VALIDITY
+    ) {
+      const groupedByDate: Record<string, typeof parsedData> =
+        parsedData.reduce((acc, row) => {
+          const dateKey = row.effective_from.toISOString();
+          if (!acc[dateKey]) {
+            acc[dateKey] = [];
+          }
+          acc[dateKey].push(row);
+          return acc;
+        }, {} as Record<string, typeof parsedData>);
+
+      Object.entries(groupedByDate).forEach(([effectiveDate, rowsForDate]) => {
+        // Sort rows by start_value
+        const sortedRows = rowsForDate.sort(
+          (a, b) => a.start_value - b.start_value
+        );
+
+        for (let i = 0; i < sortedRows.length - 1; i++) {
+          const currentRow = sortedRows[i];
+          const nextRow = sortedRows[i + 1];
+
+          // Check for overlaps - any shared number between ranges is an overlap
+          if (currentRow.end_value >= nextRow.start_value) {
+            validationErrors += `Overlap detected: Row ${currentRow.rowIndex} ends at ${currentRow.end_value} while Row ${nextRow.rowIndex} starts at ${nextRow.start_value} | `;
+          }
+
+          // Check for gaps - difference must be more than 1 to be a gap
+          else if (nextRow.start_value - currentRow.end_value > 1) {
+            const missingRange = `${currentRow.end_value + 1} to ${
+              nextRow.start_value - 1
+            }`;
+            validationErrors += `Gap detected: Missing values ${missingRange} between Row ${currentRow.rowIndex} and Row ${nextRow.rowIndex} | `;
+          }
+        }
+      });
+    }
 
     if (validationErrors) {
       return {
@@ -412,7 +459,7 @@ const Pricing = (): JSX.Element => {
         } else {
           if (selectedParameterId === LICENSE_PARAM_USERS) {
             result = validateGridData(userDiscountSlabSchema);
-          } else if (selectedParameterId === LICENSE_PARAM_VALID_UPTO) {
+          } else if (selectedParameterId === LICENSE_PARAM_VALIDITY) {
             result = validateGridData(validityDiscountSlabSchema);
           } else {
             result = validateGridData(variantPricingSchema);
@@ -473,7 +520,7 @@ const Pricing = (): JSX.Element => {
               selectedProductId,
               selectedVariantId
             );
-          } else if (selectedParameterId === LICENSE_PARAM_VALID_UPTO) {
+          } else if (selectedParameterId === LICENSE_PARAM_VALIDITY) {
             result = await saveValidityDiscountSlabs(
               result.parsedData,
               selectedProductId,
@@ -643,7 +690,7 @@ const Pricing = (): JSX.Element => {
             }
           );
           break;
-        case LICENSE_PARAM_VALID_UPTO:
+        case LICENSE_PARAM_VALIDITY:
           columns.push(
             {
               field: "start_value",
@@ -842,7 +889,7 @@ const Pricing = (): JSX.Element => {
             }
           );
           break;
-        case LICENSE_PARAM_VALID_UPTO:
+        case LICENSE_PARAM_VALIDITY:
           columns.push(
             {
               field: "start_value",
@@ -1030,7 +1077,7 @@ const Pricing = (): JSX.Element => {
       switch (selectedParameterId) {
         case LICENSE_PARAM_USERS:
           return userDiscountSlabHistory;
-        case LICENSE_PARAM_VALID_UPTO:
+        case LICENSE_PARAM_VALIDITY:
           return validityDiscountSlabHistory;
         case LICENSE_PARAM_VARIANT:
           return variantPricingHistory;
@@ -1103,7 +1150,7 @@ const Pricing = (): JSX.Element => {
               setUserDiscountSlabHistory(result.data);
             }
           }
-        } else if (selectedParameterId === LICENSE_PARAM_VALID_UPTO) {
+        } else if (selectedParameterId === LICENSE_PARAM_VALIDITY) {
           if (proceed) {
             result = await loadActiveValidityDiscountSlabs(
               selectedProductId,
@@ -1201,7 +1248,7 @@ const Pricing = (): JSX.Element => {
               alignItems: "center",
             }}
           >
-            <Typography variant="h6" color="primary" gutterBottom>
+            <Typography variant="h6" sx={{ color: "primary.main" }}>
               Plans & Pricing
             </Typography>
           </Box>
@@ -1221,7 +1268,7 @@ const Pricing = (): JSX.Element => {
             />
 
             <Autocomplete
-              disabled={loading || searchMode}
+              disabled={loading || searchMode || !selectedProductId}
               size="small"
               options={selectedProductValue?.variants ?? []}
               value={selectedVariantValue}
@@ -1306,6 +1353,7 @@ const Pricing = (): JSX.Element => {
             </Button>
             <Button
               variant="contained"
+              color="error"
               disabled={loading || !searchMode}
               onClick={handleCancelClick}
             >

@@ -45,6 +45,7 @@ import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import SaveIcon from "@mui/icons-material/Save";
 import CancelIcon from "@mui/icons-material/Close";
 import { randomId } from "@mui/x-data-grid-generator";
+import { checkIfLicenseExists4Product } from "@/app/controllers/license.controller";
 
 interface ProductModalProps {
   open: boolean;
@@ -74,7 +75,7 @@ function EditToolbar(props: GridSlotProps["toolbar"]) {
         name: "",
         is_free_variant: false,
         no_of_users: 1,
-        no_of_months: 0,
+        no_of_days: 0,
         isNew: true,
       },
     ]);
@@ -114,6 +115,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
 }) => {
   const [productData, setProductData] = useState<productSchemaT | null>(null);
   const [loading, setLoading] = useState(false);
+  const [licenseExists, setLicenseExists] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
@@ -128,6 +130,8 @@ const ProductModal: React.FC<ProductModalProps> = ({
     severity: "error" | "success" | "info" | "warning";
   }>({ open: false, message: "", severity: "info" });
 
+  const hasLoadedData = useRef(false);
+
   useEffect(() => {
     const fetchProductData = async () => {
       let errMsg: string = "";
@@ -138,10 +142,20 @@ const ProductModal: React.FC<ProductModalProps> = ({
         if (proceed && productId) {
           setLoading(true);
           result = await loadProduct(productId);
-          console.log("result :", result);
           if (result.status) {
             setProductData(result.data as productSchemaT);
             setRows(result.data.variants);
+          } else {
+            proceed = false;
+            errMsg = result.message;
+          }
+        }
+
+        if (proceed && productId) {
+          setLoading(true);
+          result = await checkIfLicenseExists4Product(productId);
+          if (result.status) {
+            setLicenseExists(result.data as boolean);
           } else {
             proceed = false;
             errMsg = result.message;
@@ -166,17 +180,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
       }
     };
 
-    if (open) {
-      if (!productId) {
-        setProductData(null);
-      } else {
-        fetchProductData();
-      }
-    } else {
+    if (open && !hasLoadedData.current) {
+      fetchProductData();
+      hasLoadedData.current = true;
+    } else if (!open) {
       setProductData(null);
       setErrors({});
       setRows([]);
-      setRowModesModel({});
+      hasLoadedData.current = false;
     }
   }, [productId, open]);
 
@@ -251,6 +262,14 @@ const ProductModal: React.FC<ProductModalProps> = ({
       }
     });
 
+    // Check that only one variant is marked as free
+    const freeVariants = parsedData.filter(
+      (variant) => variant.is_free_variant
+    );
+    if (freeVariants.length > 1) {
+      validationErrors += "Only one product variant can be marked as free. | ";
+    }
+
     if (validationErrors) {
       return {
         status: false,
@@ -264,17 +283,17 @@ const ProductModal: React.FC<ProductModalProps> = ({
   const columns: GridColDef[] = [
     {
       field: "name",
-      headerName: "Name",
-      width: 260,
+      headerName: "Variant",
+      width: 300,
       editable: true,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
       field: "is_free_variant",
-      headerName: "Free Variant",
+      headerName: "Free",
       type: "boolean",
-      width: 150,
-      editable: true,
+      width: 100,
+      editable: !licenseExists,
       align: "center",
       headerAlign: "center",
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
@@ -288,9 +307,9 @@ const ProductModal: React.FC<ProductModalProps> = ({
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
-      field: "no_of_months",
-      headerName: "Months",
-      width: 100,
+      field: "no_of_days",
+      headerName: "Trial Days",
+      width: 150,
       editable: true,
       type: "number",
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
@@ -464,7 +483,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "800px",
+            width: "850px",
             bgcolor: "background.paper",
             boxShadow: 24,
             p: 2,
@@ -535,7 +554,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
               name="license_num_identifier"
               size="small"
               margin="normal"
-              disabled={loading}
+              disabled={loading || licenseExists}
               required
               error={!!errors.license_num_identifier}
               helperText={errors.license_num_identifier || "Max 2 Characters"}
@@ -588,15 +607,15 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 mb: 1,
               }}
             >
-              <Button onClick={onClose} disabled={loading} variant="outlined">
-                Quit
-              </Button>
               <Button type="submit" variant="contained" disabled={loading}>
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (
                   "Save"
                 )}
+              </Button>
+              <Button onClick={onClose} disabled={loading} variant="outlined">
+                Quit
               </Button>
             </Box>
           </form>

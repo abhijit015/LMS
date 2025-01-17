@@ -6,6 +6,7 @@ import {
   deleteProductFromDB,
   loadProductFromDB,
   loadProductListFromDB,
+  loadVariantFromDB,
   saveProductInDB,
 } from "../services/product.service";
 import { getCurrentUserDet } from "./user.controller";
@@ -124,6 +125,16 @@ export async function canProductBeSaved(productData: productSchemaT) {
     if (proceed && productData.variants) {
       const validationErrors: string[] = [];
 
+      // Check for more than one free variant
+      const freeVariantsCount = productData.variants.filter(
+        (variant) => variant.is_free_variant
+      ).length;
+      if (freeVariantsCount > 1) {
+        proceed = false;
+        errMsg = "Only one variant can be marked as free.";
+      }
+
+      // Validate each variant
       productData.variants.forEach((plan, index) => {
         const parsed = productVariantsSchema.safeParse(plan);
         if (!parsed.success) {
@@ -220,6 +231,36 @@ export async function loadProduct(product_id: number) {
   try {
     if (proceed) {
       result = await loadProductFromDB(product_id as number);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadVariant(variant_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let userId;
+
+  try {
+    if (proceed) {
+      result = await loadVariantFromDB(variant_id as number);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;

@@ -17,12 +17,11 @@ import {
 } from "../utils/constants";
 import { executiveSchemaT, inviteSchemaT } from "../utils/models";
 import { executiveSchema } from "../utils/zodschema";
-import { getCurrentRole } from "./business.controller";
+import { getCurrentUserRole } from "./business.controller";
 import { getCurrentDealerDet } from "./dealer.controller";
 import {
   canInviteBeSaved,
   loadInvite,
-  saveInvite,
   setInviteDataB4Saving,
 } from "./invite.controller";
 import { getCurrentUserDet } from "./user.controller";
@@ -223,7 +222,7 @@ export async function setExecutiveDataB4Saving(
     }
 
     if (proceed && !executiveData.id) {
-      result = await getCurrentRole();
+      result = await getCurrentUserRole();
       if (!result.status) {
         proceed = false;
         errMsg = result.message;

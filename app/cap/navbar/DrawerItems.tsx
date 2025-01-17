@@ -7,10 +7,28 @@ import {
   ListItemText,
   Collapse,
   Divider,
+  ListItem,
+  ListItemIcon,
 } from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import Link from "next/link";
 import { userSchemaT } from "@/app/utils/models";
+import InboxIcon from "@mui/icons-material/MoveToInbox";
+import MailIcon from "@mui/icons-material/Mail";
+import CategoryIcon from "@mui/icons-material/Category";
+import DashboardIcon from "@mui/icons-material/Dashboard";
+import VpnKeyIcon from "@mui/icons-material/VpnKey";
+import PriceCheckIcon from "@mui/icons-material/PriceCheck";
+import GroupIcon from "@mui/icons-material/Group";
+import BusinessIcon from "@mui/icons-material/Business";
+import WorkIcon from "@mui/icons-material/Work";
+import ExtensionIcon from "@mui/icons-material/Extension";
+import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import SettingsIcon from "@mui/icons-material/Settings";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 
 interface DrawerItemsProps {
   onClose: () => void;
@@ -18,174 +36,197 @@ interface DrawerItemsProps {
 }
 
 const DrawerItems: React.FC<DrawerItemsProps> = ({ onClose, userData }) => {
-  const [openProducts, setOpenProducts] = useState(false);
-  const [openReport1, setOpenReport1] = useState(false);
-  const [openReport2, setOpenReport2] = useState(false);
+  const [openMasters, setOpenMasters] = useState(false);
+  const [openReports, setOpenReports] = useState(false);
+
+  const handleMastersClick = () => {
+    setOpenMasters(!openMasters);
+  };
 
   const handleReportsClick = () => {
-    setOpenProducts(!openProducts);
+    setOpenReports(!openReports);
   };
 
   return (
     <List>
+      <img
+        src="https://algofast.in/images/logo.png"
+        alt="Algofast India Pvt. Ltd."
+        style={{
+          height: "90px",
+          width: "210px",
+          marginRight: "24px",
+          marginLeft: "24px",
+          marginTop: "6px",
+        }}
+      />
+
+      <Divider />
+
       <Link href="/cap/dashboard" passHref>
         <ListItemButton onClick={onClose}>
+          <ListItemIcon>
+            <DashboardIcon />
+          </ListItemIcon>
           <ListItemText primary="Dashboard" />
         </ListItemButton>
       </Link>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
-
       <Link href="/cap/licenses" passHref>
         <ListItemButton onClick={onClose}>
+          <ListItemIcon>
+            <VpnKeyIcon />
+          </ListItemIcon>
           <ListItemText primary="Licenses" />
         </ListItemButton>
       </Link>
 
       <Link href="/cap/pricing" passHref>
         <ListItemButton onClick={onClose}>
+          <ListItemIcon>
+            <PriceCheckIcon />
+          </ListItemIcon>
           <ListItemText primary="Plans & Pricing" />
         </ListItemButton>
       </Link>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
+      <Divider />
 
-      <Link href="/cap/products" passHref>
-        <ListItemButton onClick={onClose}>
-          <ListItemText primary="Products" />
-        </ListItemButton>
-      </Link>
+      <ListItemButton onClick={handleMastersClick}>
+        <ListItemIcon>
+          <CategoryIcon />
+        </ListItemIcon>
+        <ListItemText primary="Masters" />
+        {openMasters ? <ExpandLess /> : <ExpandMore />}
+      </ListItemButton>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
+      <Collapse in={openMasters} timeout="auto" unmountOnExit>
+        <List component="div" disablePadding>
+          <Link href="/cap/products" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <CategoryIcon />
+              </ListItemIcon>
+              <ListItemText primary="Products" />
+            </ListItemButton>
+          </Link>
 
-      <Link href="/cap/executives" passHref>
-        <ListItemButton onClick={onClose}>
-          <ListItemText primary=" Executives" />
-        </ListItemButton>
-      </Link>
+          <Link href="/cap/executives" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <GroupIcon />
+              </ListItemIcon>
+              <ListItemText primary="Executives" />
+            </ListItemButton>
+          </Link>
 
-      <Link href="/cap/dealers" passHref>
-        <ListItemButton onClick={onClose}>
-          <ListItemText primary="Dealers" />
-        </ListItemButton>
-      </Link>
+          <Link href="/cap/dealers" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <BusinessIcon />
+              </ListItemIcon>
+              <ListItemText primary="Dealers" />
+            </ListItemButton>
+          </Link>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
+          <Link href="/cap/departments" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <WorkIcon />
+              </ListItemIcon>
+              <ListItemText primary="Departments" />
+            </ListItemButton>
+          </Link>
+
+          <Link href="/cap/roles" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <AdminPanelSettingsIcon />
+              </ListItemIcon>
+              <ListItemText primary="Roles" />
+            </ListItemButton>
+          </Link>
+
+          <Link href="/cap/addons" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <ExtensionIcon />
+              </ListItemIcon>
+              <ListItemText primary="Add-ons" />
+            </ListItemButton>
+          </Link>
+
+          <Link href="#" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <CardGiftcardIcon />
+              </ListItemIcon>
+              <ListItemText primary="Schemes" />
+            </ListItemButton>
+          </Link>
+        </List>
+      </Collapse>
+
+      <Divider />
 
       <Link href="/cap/invites" passHref>
         <ListItemButton onClick={onClose}>
-          <ListItemText primary="Invites" />
+          <ListItemIcon>
+            <PersonAddIcon />
+          </ListItemIcon>
+          <ListItemText primary="Invite Management" />
         </ListItemButton>
       </Link>
-
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
-
-      <Link href="/cap/departments" passHref>
-        <ListItemButton onClick={onClose}>
-          <ListItemText primary="Departments" />
-        </ListItemButton>
-      </Link>
-
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
 
       <Link href="/cap/credits" passHref>
         <ListItemButton onClick={onClose}>
-          <ListItemText primary="Credit Ledger" />
+          <ListItemIcon>
+            <AccountBalanceWalletIcon />
+          </ListItemIcon>
+          <ListItemText primary="Credits Management" />
         </ListItemButton>
       </Link>
-
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
-
-      <Link href="/cap/roles" passHref>
-        <ListItemButton onClick={onClose}>
-          <ListItemText primary="Roles" />
-        </ListItemButton>
-      </Link>
-
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
 
       <Link href="/cap/rights" passHref>
         <ListItemButton onClick={onClose}>
-          <ListItemText primary="Rights" />
+          <ListItemIcon>
+            <AdminPanelSettingsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Rights Management" />
         </ListItemButton>
       </Link>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
+      <Divider />
 
-      <Link href="/cap/variants" passHref>
+      <Link href="/cap/settings" passHref>
         <ListItemButton onClick={onClose}>
-          <ListItemText primary="Variants" />
+          <ListItemIcon>
+            <SettingsIcon />
+          </ListItemIcon>
+          <ListItemText primary="Settings" />
         </ListItemButton>
       </Link>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
-
-      <Link href="/cap/addons" passHref>
-        <ListItemButton onClick={onClose}>
-          <ListItemText primary="Add-ons" />
-        </ListItemButton>
-      </Link>
-
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
-
-      <Link href="#" passHref>
-        <ListItemButton onClick={onClose}>
-          <ListItemText primary="Schemes" />
-        </ListItemButton>
-      </Link>
-
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
+      <Divider />
 
       <ListItemButton onClick={handleReportsClick}>
+        <ListItemIcon>
+          <AssessmentIcon />
+        </ListItemIcon>
         <ListItemText primary="Reports" />
-        {openProducts ? <ExpandLess /> : <ExpandMore />}
+        {openReports ? <ExpandLess /> : <ExpandMore />}
       </ListItemButton>
 
-      <Collapse in={openProducts} timeout="auto" unmountOnExit>
+      <Collapse in={openReports} timeout="auto" unmountOnExit>
         <List component="div" disablePadding>
-          <ListItemButton
-            sx={{ pl: 4 }}
-            onClick={() => setOpenReport1(!openReport1)}
-          >
-            <ListItemText primary="Report 1" />
-            {openReport1 ? <ExpandLess /> : <ExpandMore />}
-          </ListItemButton>
-          <Collapse in={openReport1} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              <Link href="#" passHref>
-                <ListItemButton sx={{ pl: 8 }} onClick={onClose}>
-                  <ListItemText primary="Subreport 1" />
-                </ListItemButton>
-              </Link>
-              <Link href="#" passHref>
-                <ListItemButton sx={{ pl: 8 }} onClick={onClose}>
-                  <ListItemText primary="Subreport 2" />
-                </ListItemButton>
-              </Link>
-            </List>
-          </Collapse>
-
-          <ListItemButton
-            sx={{ pl: 4 }}
-            onClick={() => setOpenReport2(!openReport2)}
-          >
-            <ListItemText primary="Report 2" />
-            {openReport2 ? <ExpandLess /> : <ExpandMore />}
-          </ListItemButton>
-          <Collapse in={openReport2} timeout="auto" unmountOnExit>
-            <List component="div" disablePadding>
-              <Link href="#" passHref>
-                <ListItemButton sx={{ pl: 8 }} onClick={onClose}>
-                  <ListItemText primary="Subreport 1" />
-                </ListItemButton>
-              </Link>
-              <Link href="#" passHref>
-                <ListItemButton sx={{ pl: 8 }} onClick={onClose}>
-                  <ListItemText primary="Subreport 2" />
-                </ListItemButton>
-              </Link>
-            </List>
-          </Collapse>
+          <Link href="/cap/reports/licenseHistory" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <AssessmentIcon />
+              </ListItemIcon>
+              <ListItemText primary="License History" />
+            </ListItemButton>
+          </Link>
         </List>
       </Collapse>
     </List>

@@ -39,6 +39,7 @@ import {
   INVITE_STATUS_PENDING,
   INVITE_STATUS_ACCEPTED,
 } from "@/app/utils/constants";
+import theme from "../theme/theme";
 
 interface ExecutiveModalProps {
   open: boolean;
@@ -253,9 +254,9 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
       baseData.send_invitation = formData.has("send_invitation");
     }
 
-    console.log("baseData.send_invitation : ", baseData.send_invitation);
-
     let result = executiveSchema.safeParse(baseData);
+
+    console.log("result : ", result);
 
     if (result.success) {
       setConfirmationModal({
@@ -471,7 +472,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
 
             <Box
               sx={{
-                border: "1px solid grey",
+                border: "1px solid #ccc",
                 borderRadius: 2,
                 padding: 2,
                 mt: 3,
@@ -487,7 +488,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
                   left: "10px",
                   backgroundColor: "#fff",
                   paddingRight: "10px",
-                  color: "#005a9f",
+                  color: theme.palette.secondary.main,
                 }}
               >
                 Contact Details
@@ -574,15 +575,15 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
             >
-              <Button onClick={onClose} disabled={loading} variant="outlined">
-                Quit
-              </Button>
               <Button type="submit" variant="contained" disabled={loading}>
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (
                   "Save"
                 )}
+              </Button>
+              <Button onClick={onClose} disabled={loading} variant="outlined">
+                Quit
               </Button>
             </Box>
           </form>

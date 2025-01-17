@@ -2,7 +2,7 @@
 
 import {
   getCurrentBusinessDet,
-  getCurrentRole,
+  getCurrentUserRole,
 } from "../controllers/business.controller";
 import { getCurrentDealerDet } from "../controllers/dealer.controller";
 import { loadExecutive } from "../controllers/executive.controller";
@@ -43,7 +43,7 @@ export async function loadExecutiveListFromDB() {
     }
 
     if (proceed) {
-      result = await getCurrentRole();
+      result = await getCurrentUserRole();
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -64,12 +64,12 @@ export async function loadExecutiveListFromDB() {
 
     if (proceed) {
       if (currentRole === ROLE_DEALER_ADMIN) {
-        query = `SELECT *, (select name from role_mast where id=role_id) as role, (select name from department_mast where id=department_id) as department from executive_mast where dealer_id=? order by name`;
+        query = `SELECT *, (select name from role_mast where id=role_id) as role, (select name from department_mast where id=department_id) as department from executive_mast where dealer_id=? and role_id<>1 order by name`;
         executiveResult = await executeQueryInBusinessDB(query, [
           dealerData.id,
         ]);
       } else {
-        query = `SELECT *, (select name from role_mast where id=role_id) as role, (select name from department_mast where id=department_id) as department from executive_mast where dealer_id=0 or dealer_id IS NULL order by name`;
+        query = `SELECT *, (select name from role_mast where id=role_id) as role, (select name from department_mast where id=department_id) as department from executive_mast where dealer_id=0 or dealer_id IS NULL and role_id<>1 order by name`;
         executiveResult = await executeQueryInBusinessDB(query);
       }
       if (executiveResult.length < 0) {

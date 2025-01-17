@@ -25,21 +25,30 @@ import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 import SearchIcon from "@mui/icons-material/Search";
 import Layout from "../layout";
 import ConfirmationModal from "../modalForms/AskYesNo";
-import AddonModal from "../modalForms/Addon";
-import { deleteAddon, loadAddonList } from "@/app/controllers/addon.controller";
+import CreditModal from "../modalForms/AssignCredit2Dealer";
+import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import {
+  deleteAssignCreditTran,
+  loadAssignCreditList,
+} from "@/app/controllers/credit.controller";
 
-interface AddonList {
+interface CreditList {
   id: number;
-  name: string;
+  dealer_name: string;
+  modified_credits: number;
+  remarks: string;
+  invoice_no: string;
+  invoice_date: Date;
+  tran_date: Date;
 }
 
-const Addons = () => {
+const Credits = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const [addons, setAddons] = useState<AddonList[]>([]);
-  const [filteredAddons, setFilteredAddons] = useState<AddonList[]>([]);
-  const [selectedAddonId, setSelectedAddonId] = useState<number | null>(null);
+  const [credits, setCredits] = useState<CreditList[]>([]);
+  const [filteredCredits, setFilteredCredits] = useState<CreditList[]>([]);
+  const [selectedCreditId, setSelectedCreditId] = useState<number | null>(null);
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -58,15 +67,15 @@ const Addons = () => {
     items: [],
   });
 
-  const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const fetchCalledRef = useRef(false);
 
   const columns: GridColDef[] = [
     {
-      field: "name",
-      headerName: "Name",
+      field: "vch_no",
+      headerName: "Voucher No.",
       flex: 1,
       minWidth: 150,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
@@ -85,6 +94,53 @@ const Addons = () => {
           {params.value}
         </Link>
       ),
+    },
+    {
+      field: "dealer_name",
+      headerName: "Dealer",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "modified_credits",
+      headerName: "Credits Assigned",
+      type: "number",
+      flex: 1,
+      minWidth: 150,
+      align: "right",
+      headerAlign: "right",
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "invoice_no",
+      headerName: "Invoice No.",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "remarks",
+      headerName: "Remarks",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "invoice_date",
+      headerName: "Invoice Date",
+      type: "date",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "tran_date",
+      headerName: "Transaction Date",
+      type: "date",
+      flex: 1,
+      minWidth: 150,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
       field: "actions",
@@ -127,7 +183,7 @@ const Addons = () => {
     event: React.MouseEvent<HTMLElement>,
     id: number
   ) => {
-    setSelectedAddonId(id);
+    setSelectedCreditId(id);
     setAnchorEl(event.currentTarget);
   };
 
@@ -139,12 +195,18 @@ const Addons = () => {
     setSnackbar((prevState) => ({ ...prevState, open: false }));
   };
 
-  const fetchAddons = async () => {
+  const fetchCredits = async () => {
     setLoading(true);
     try {
-      const result = await loadAddonList();
+      const result = await loadAssignCreditList();
       if (result.status) {
-        setAddons(result.data as AddonList[]);
+        setCredits(result.data as CreditList[]);
+        // const formattedData = result.data.map((credit: CreditList) => ({
+        //   ...credit,
+        //   invoice_date: formatDate(credit.invoice_date),
+        //   tran_date: formatDate(credit.tran_date),
+        // }));
+        // setCredits(formattedData);
       } else {
         setSnackbar({
           open: true,
@@ -165,27 +227,43 @@ const Addons = () => {
 
   useEffect(() => {
     if (!fetchCalledRef.current) {
-      fetchAddons();
+      fetchCredits();
       fetchCalledRef.current = true;
     }
   }, []);
 
   useEffect(() => {
-    setFilteredAddons(
-      addons.filter((addon) =>
-        addon.name.toLowerCase().includes(searchQuery.toLowerCase())
+    setFilteredCredits(
+      credits.filter(
+        (credit) =>
+          credit.dealer_name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          credit.modified_credits
+            .toString()
+            .includes(searchQuery.toLowerCase()) ||
+          credit.remarks.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          credit.invoice_no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          credit.invoice_date
+            .toString()
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          credit.tran_date
+            .toString()
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
       )
     );
-  }, [searchQuery, addons]);
+  }, [searchQuery, credits]);
 
-  const handleAddAddon = () => {
-    setSelectedAddonId(null);
-    setIsAddonModalOpen(true);
+  const handleAddCredit = () => {
+    setSelectedCreditId(null);
+    setIsCreditModalOpen(true);
   };
 
   const handleEdit = (id: number) => {
-    setSelectedAddonId(id);
-    setIsAddonModalOpen(true);
+    setSelectedCreditId(id);
+    setIsCreditModalOpen(true);
   };
 
   const openConfirmationDialog = () => {
@@ -193,7 +271,7 @@ const Addons = () => {
       ...prev,
       open: true,
       title: "Confirm Deletion",
-      message: "Are you sure you want to delete this addon?",
+      message: "Are you sure you want to delete this transaction?",
       onConfirm: () => handleDelete(),
     }));
   };
@@ -201,15 +279,15 @@ const Addons = () => {
   const handleDelete = async () => {
     setLoading(true);
     try {
-      if (selectedAddonId) {
-        const result = await deleteAddon(selectedAddonId);
+      if (selectedCreditId) {
+        const result = await deleteAssignCreditTran(selectedCreditId);
         if (result.status) {
           setSnackbar({
             open: true,
-            message: "Addon deleted successfully",
+            message: "Transaction deleted successfully",
             severity: "success",
           });
-          await fetchAddons();
+          await fetchCredits();
         } else {
           setSnackbar({
             open: true,
@@ -233,8 +311,8 @@ const Addons = () => {
     setSearchQuery(event.target.value);
   };
 
-  const handleAddonSave = () => {
-    fetchAddons();
+  const handleCreditSave = () => {
+    fetchCredits();
   };
 
   return (
@@ -258,18 +336,18 @@ const Addons = () => {
             }}
           >
             <Typography variant="h6" sx={{ color: "primary.main" }}>
-              Add-ons
+              Credits Management
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="outlined"
-                onClick={handleAddAddon}
+                onClick={handleAddCredit}
                 disabled={loading}
                 size="small"
                 startIcon={<AddIcon />}
               >
-                Add Add-on
+                Assign Credits
               </Button>
 
               <TextField
@@ -291,14 +369,14 @@ const Addons = () => {
 
           <Box sx={{ height: "auto" }}>
             <DataGrid
-              rows={filteredAddons}
+              rows={filteredCredits}
               columns={columns}
               rowHeight={36}
               columnHeaderHeight={36}
-              pageSizeOptions={[5, 10, 25]}
+              pageSizeOptions={[10, 25, 50]}
               onFilterModelChange={(newModel) => setFilterModel(newModel)}
               initialState={{
-                pagination: { paginationModel: { pageSize: 5 } },
+                pagination: { paginationModel: { pageSize: 10 } },
               }}
               sx={{
                 "& .MuiDataGrid-columnHeader": {
@@ -343,14 +421,14 @@ const Addons = () => {
         </Alert>
       </Snackbar>
 
-      <AddonModal
-        open={isAddonModalOpen}
-        addonId={selectedAddonId || undefined}
-        onClose={() => setIsAddonModalOpen(false)}
-        onSave={handleAddonSave}
+      <CreditModal
+        open={isCreditModalOpen}
+        dealerCreditTranId={selectedCreditId || undefined}
+        onClose={() => setIsCreditModalOpen(false)}
+        onSave={handleCreditSave}
       />
     </Layout>
   );
 };
 
-export default Addons;
+export default Credits;

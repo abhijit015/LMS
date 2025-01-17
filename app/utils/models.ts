@@ -21,13 +21,7 @@ export type licenseDetSchemaT = z.infer<typeof zs.licenseDetSchema>;
 export type licenseStatusSchemaT = z.infer<typeof zs.licenseStatusSchema>;
 export type licenseTranSchemaT = z.infer<typeof zs.licenseTranSchema>;
 export type addonStatusSchemaT = z.infer<typeof zs.addonStatusSchema>;
-export type dealerCreditsStatusSchemaT = z.infer<
-  typeof zs.dealerCreditsStatusSchema
->;
-export type dealerCreditsLedgerSchemaT = z.infer<
-  typeof zs.dealerCreditsLedgerSchema
->;
-export type licenseSchemaT = z.infer<typeof zs.licenseSchema>;
+export type dealerCreditTranSchemaT = z.infer<typeof zs.dealerCreditTranSchema>;
 
 export type inviteSchemaT = {
   id: number;

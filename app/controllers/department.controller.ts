@@ -10,7 +10,7 @@ import {
 } from "../services/department.service";
 import { getCurrentUserDet } from "./user.controller";
 import { ROLE_DEALER_ADMIN } from "../utils/constants";
-import { getCurrentRole } from "./business.controller";
+import { getCurrentUserRole } from "./business.controller";
 import { getCurrentDealerDet } from "./dealer.controller";
 
 export async function setDepartmentDataB4Saving(
@@ -35,7 +35,7 @@ export async function setDepartmentDataB4Saving(
     }
 
     if (proceed && !departmentData.id) {
-      result = await getCurrentRole();
+      result = await getCurrentUserRole();
       if (!result.status) {
         proceed = false;
         errMsg = result.message;

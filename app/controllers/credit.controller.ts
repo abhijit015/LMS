@@ -1,18 +1,151 @@
 "use server";
 
-import { addonSchema } from "../utils/zodschema";
-import { addonSchemaT } from "../utils/models";
 import {
-  deleteAddonFromDB,
-  loadAddonFromDB,
-  loadAddonListFromDB,
-  runDBValidationsB4DeletingAddon,
-  runDBValidationsB4SavingAddon,
-  saveAddonInDB,
-} from "../services/addon.service";
+  deleteAssignCreditTranFromDB,
+  loadAssignCreditListFromDB,
+  loadAssignCreditTranFromDB,
+  saveDealerCreditTranInDB,
+} from "../services/credit.service";
+import { dealerCreditTranSchemaT } from "../utils/models";
+import { dealerCreditTranSchema } from "../utils/zodschema";
 import { getCurrentUserDet } from "./user.controller";
 
-export async function setAddonDataB4Saving(addonData: addonSchemaT) {
+export async function loadAssignCreditList() {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let userData;
+
+  try {
+    if (proceed) {
+      result = await loadAssignCreditListFromDB();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadAssignCreditTran(id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadAssignCreditTranFromDB(id);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function deleteAssignCreditTran(id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await deleteAssignCreditTranFromDB(id);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function saveDealerCreditTran(data: dealerCreditTranSchemaT) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await setDealerCreditTranDataB4Saving(data);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await canDealerCreditTranBeSaved(data);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await saveDealerCreditTranInDB(data);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function setDealerCreditTranDataB4Saving(
+  data: dealerCreditTranSchemaT
+) {
   let errMsg: string = "";
   let proceed: boolean = true;
   let userData;
@@ -30,11 +163,11 @@ export async function setAddonDataB4Saving(addonData: addonSchemaT) {
     }
 
     if (proceed) {
-      if (!addonData.id) {
-        addonData.created_by = userData.id;
+      if (!data.id) {
+        data.created_by = userData.id;
       }
 
-      addonData.updated_by = userData.id;
+      data.updated_by = userData.id;
     }
 
     return {
@@ -43,7 +176,7 @@ export async function setAddonDataB4Saving(addonData: addonSchemaT) {
       data: null,
     };
   } catch (error) {
-    console.error("Error while setting addon data before saving :", error);
+    console.error("Error while setting license data before saving :", error);
     return {
       status: false,
       message:
@@ -53,67 +186,22 @@ export async function setAddonDataB4Saving(addonData: addonSchemaT) {
   }
 }
 
-export async function saveAddon(addonData: addonSchemaT) {
+export async function canDealerCreditTranBeSaved(
+  data: dealerCreditTranSchemaT
+) {
   let errMsg: string = "";
   let proceed: boolean = true;
-  let result;
 
   try {
     if (proceed) {
-      result = await setAddonDataB4Saving(addonData);
-      if (!result.status) {
+      if (!data) {
         proceed = false;
-        errMsg = result.message;
+        errMsg = "Credit Transaction Data cannot be null.";
       }
     }
 
     if (proceed) {
-      result = await canAddonBeSaved(addonData);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    if (proceed) {
-      result = await saveAddonInDB(addonData);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: proceed ? result?.data : null,
-    };
-  } catch (error) {
-    console.error("Error saving addon:", error);
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function canAddonBeSaved(addonData: addonSchemaT) {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-  let result;
-
-  try {
-    if (proceed) {
-      if (!addonData) {
-        proceed = false;
-        errMsg = "Addon Data cannot be null.";
-      }
-    }
-
-    if (proceed) {
-      const parsed = addonSchema.safeParse(addonData);
+      const parsed = dealerCreditTranSchema.safeParse(data);
 
       if (!parsed.success) {
         errMsg = parsed.error.issues
@@ -123,142 +211,10 @@ export async function canAddonBeSaved(addonData: addonSchemaT) {
       }
     }
 
-    if (proceed) {
-      result = await runDBValidationsB4SavingAddon(addonData);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
     return {
       status: proceed,
       message: proceed ? "Success" : errMsg,
       data: null,
-    };
-  } catch (error) {
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function deleteAddon(addonID: number) {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-
-  try {
-    if (proceed) {
-      const result = await canAddonBeDeleted(addonID);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    if (proceed) {
-      const result = await deleteAddonFromDB(addonID);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: null,
-    };
-  } catch (error) {
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function canAddonBeDeleted(addonID: number) {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-  let result;
-  try {
-    if (proceed) {
-      result = await runDBValidationsB4DeletingAddon(addonID);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: null,
-    };
-  } catch (error) {
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function loadAddon(addon_id: number) {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-  let result;
-  let userId;
-
-  try {
-    if (proceed) {
-      result = await loadAddonFromDB(addon_id as number);
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: proceed ? result?.data : null,
-    };
-  } catch (error) {
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
-      data: null,
-    };
-  }
-}
-
-export async function loadAddonList() {
-  let errMsg: string = "";
-  let proceed: boolean = true;
-  let result;
-  let userData;
-
-  try {
-    if (proceed) {
-      result = await loadAddonListFromDB();
-      if (!result.status) {
-        proceed = false;
-        errMsg = result.message;
-      }
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "Success" : errMsg,
-      data: proceed ? result?.data : null,
     };
   } catch (error) {
     return {

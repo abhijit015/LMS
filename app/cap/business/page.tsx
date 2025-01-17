@@ -247,7 +247,7 @@ const Business = () => {
               marginRight: 2,
               "&:hover": {
                 // textDecoration: "underline",
-                // color: "primary.dark",
+                // color: "primary.main",
                 fontWeight: "bold",
               },
             }}
@@ -587,7 +587,7 @@ const Business = () => {
   );
 
   return (
-    <Layout loading={loading} isBusinessSelected={false}>
+    <Layout loading={loading}>
       <Card
         sx={{
           height: "auto",

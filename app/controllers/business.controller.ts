@@ -257,7 +257,6 @@ export async function deregisterFromBusiness(business_id: number) {
   let result;
 
   try {
-
     if (proceed) {
       result = await deregisterFromBusinessInDB(business_id);
       if (!result.status) {
@@ -402,7 +401,7 @@ export async function checkIfBusinessLoggedIn() {
   }
 }
 
-export async function getCurrentRole() {
+export async function getCurrentUserRole() {
   let errMsg: string = "";
   let proceed: boolean = true;
   let businessId: number | null = 0;

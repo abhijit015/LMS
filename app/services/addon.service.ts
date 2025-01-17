@@ -180,3 +180,53 @@ export async function saveAddonInDB(addonData: addonSchemaT) {
     if (businessDBConn) businessDBConn.end();
   }
 }
+
+export async function runDBValidationsB4DeletingAddon(addonID: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let query;
+
+  try {
+    if (proceed) {
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function runDBValidationsB4SavingAddon(addonData: addonSchemaT) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let query;
+
+  try {
+    if (proceed) {
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}

@@ -1,196 +1,36 @@
+"use server";
+
 import {
+  dealerCreditTranSchemaT,
+  dealerSchemaT,
   licenseDetSchemaT,
-  licenseSchemaT,
   licenseStatusSchemaT,
   licenseTranSchemaT,
 } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
 import { Connection } from "mariadb";
-
-export async function loadLicenseFromDB(id: number) {
-  let proceed: boolean = true;
-  let errMsg: string = "";
-  let licenseData: any = null;
-  let result;
-  let query;
-
-  try {
-    if (proceed) {
-      query = `SELECT * FROM license_mast WHERE id = ?`;
-      result = await executeQueryInBusinessDB(query, [id]);
-
-      if (result.length > 0) {
-        licenseData = result[0];
-      } else {
-        proceed = false;
-        errMsg = "License not found.";
-      }
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "License loaded successfully." : errMsg,
-      data: licenseData,
-    };
-  } catch (error) {
-    console.error("Error loading license:", error);
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading license.",
-      data: null,
-    };
-  }
-}
-
-export async function loadLicenseListFromDB() {
-  let proceed: boolean = true;
-  let errMsg: string = "";
-  let query;
-  let result;
-  try {
-    if (proceed) {
-      query = `SELECT * from license_mast`;
-      result = await executeQueryInBusinessDB(query);
-      if (result.length < 0) {
-        proceed = false;
-        errMsg = "Error fetching list.";
-      }
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "Licenses loaded successfully." : errMsg,
-      data: proceed ? result : null,
-    };
-  } catch (error) {
-    console.error("Error loading licenses:", error);
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading licenses.",
-      data: null,
-    };
-  }
-}
-
-export async function deleteLicenseFromDB(licenseId: number) {
-  let proceed: boolean = true;
-  let errMsg: string = "";
-  let result;
-  let query;
-  let connection;
-  let values: any[];
-
-  try {
-    connection = await getBusinessDBConn();
-    await connection.beginTransaction();
-
-    if (proceed) {
-      result = await executeQueryInBusinessDB(
-        "delete from license_mast where id=?",
-        [licenseId],
-        connection
-      );
-      if (result.affectedRows <= 0) {
-        proceed = false;
-        errMsg = "Unable to delete license.";
-      }
-    }
-
-    if (proceed) {
-      await connection.commit();
-    } else {
-      await connection.rollback();
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "License deleted successfully." : errMsg,
-      data: null,
-    };
-  } catch (error) {
-    if (connection) await connection.rollback();
-    console.error("Error deleting license:", error);
-    return {
-      status: false,
-      message:
-        error instanceof Error ? error.message : "Error deleting license.",
-      data: null,
-    };
-  } finally {
-    if (connection) connection.end();
-  }
-}
-
-export async function saveLicenseInDB(licenseData: licenseSchemaT) {
-  let proceed: boolean = true;
-  let errMsg: string = "";
-  let query: string;
-  let values: any[];
-  let connection;
-  let result;
-
-  try {
-    connection = await getBusinessDBConn();
-    await connection.beginTransaction();
-
-    if (proceed) {
-      if (licenseData.id) {
-        query = `
-            UPDATE license_mast SET
-              name = ?,
-              updated_by = ?
-            WHERE id = ?
-          `;
-        values = [licenseData.name, licenseData.updated_by, licenseData.id];
-      } else {
-        query = `
-            INSERT INTO license_mast (name,created_by,updated_by)
-            VALUES (?,?,?)
-          `;
-        values = [
-          licenseData.name,
-          licenseData.created_by,
-          licenseData.updated_by,
-        ];
-      }
-
-      result = await executeQueryInBusinessDB(query, values, connection);
-
-      if (result.affectedRows < 0) {
-        proceed = false;
-        errMsg = "Error saving license.";
-      } else {
-        if (!licenseData.id) {
-          licenseData.id = result.insertId;
-        }
-      }
-    }
-
-    if (proceed) {
-      await connection.commit();
-    } else {
-      await connection.rollback();
-    }
-
-    return {
-      status: proceed,
-      message: proceed ? "License saved successfully." : errMsg,
-      data: proceed ? licenseData.id : null,
-    };
-  } catch (error) {
-    if (connection) await connection.rollback();
-    console.error("Error saving license:", error);
-    return {
-      status: false,
-      message: error instanceof Error ? error.message : "Error saving license.",
-      data: null,
-    };
-  } finally {
-    if (connection) connection.end();
-  }
-}
+import {
+  calculateExpiryDateByMonths,
+  getPendingMonthsFromExpiry,
+  initDealerCreditLedgerData,
+  initDealerData,
+  initLicenseStatusData,
+} from "../utils/common";
+import { loadLicenseStatus } from "../controllers/license.controller";
+import {
+  ADD,
+  DEALER_CREDIT_TRAN_CONSUME_CREDITS,
+  LICENSE_TRAN_ASSIGN_DEALER_2_LICENSE,
+  LICENSE_TRAN_EXTEND_USERS,
+  LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY,
+  LICENSE_TRAN_EXTEND_VALIDITY,
+  LICENSE_TRAN_EXTEND_VARIANT,
+  MODIFY,
+} from "../utils/constants";
+import { getCurrentDealerDet } from "../controllers/dealer.controller";
+import { getCurrentUserDet } from "../controllers/user.controller";
+import { saveDealerCreditTranInDB } from "./credit.service";
+import { getDiscountAndGrace4ExtendingValidityFromDB } from "./pricing.service";
 
 export async function generateLicenseInDB(
   licenseData: licenseDetSchemaT,
@@ -261,10 +101,7 @@ export async function generateLicenseInDB(
     }
 
     if (proceed) {
-      result = await saveLicenseTransactionInDB(
-        licenseTranData,
-        businessDBConn
-      );
+      result = await saveLicenseTranInDB(licenseTranData, businessDBConn);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -428,9 +265,10 @@ export async function saveLicenseStatusInDB(
             product_variant_id = ?,
             no_of_users = ?,
             current_users = ?,
-            dealer_id = ?,
-            expiry_date_with_grace = ?,
-            expiry_date_without_grace = ?
+            last_dealer_id = ?,
+            expiry_date = ?,
+            grace = ?,
+            updated_by = ?
           WHERE id = ?
         `;
         values = [
@@ -438,28 +276,30 @@ export async function saveLicenseStatusInDB(
           statusData.product_variant_id,
           statusData.no_of_users,
           statusData.current_users,
-          statusData.dealer_id,
-          statusData.expiry_date_with_grace,
-          statusData.expiry_date_without_grace,
+          statusData.last_dealer_id,
+          statusData.expiry_date,
+          statusData.grace,
+          statusData.updated_by,
           statusData.id,
         ];
       } else {
         query = `
           INSERT INTO license_status (
             license_id, product_variant_id, no_of_users, current_users,
-            dealer_id, expiry_date_with_grace, expiry_date_without_grace,
-            created_by
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            last_dealer_id, expiry_date, grace,
+            created_by, updated_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         values = [
           statusData.license_id,
           statusData.product_variant_id,
           statusData.no_of_users,
           statusData.current_users,
-          statusData.dealer_id,
-          statusData.expiry_date_with_grace,
-          statusData.expiry_date_without_grace,
+          statusData.last_dealer_id,
+          statusData.expiry_date,
+          statusData.grace,
           statusData.created_by,
+          statusData.updated_by,
         ];
       }
 
@@ -508,7 +348,7 @@ export async function saveLicenseStatusInDB(
   }
 }
 
-export async function saveLicenseTransactionInDB(
+export async function saveLicenseTranInDB(
   transactionData: licenseTranSchemaT,
   connection?: Connection
 ) {
@@ -518,8 +358,20 @@ export async function saveLicenseTransactionInDB(
   let values: any[];
   let businessDBConn;
   let result;
+  let licenseStatusData: licenseStatusSchemaT = initLicenseStatusData();
+  let dealerCreditTranData: dealerCreditTranSchemaT =
+    initDealerCreditLedgerData();
+  let inputMode: number = 0;
+  let dealerData: dealerSchemaT = initDealerData();
+  let userData;
 
   try {
+    if (transactionData.id) {
+      inputMode = MODIFY;
+    } else {
+      inputMode = ADD;
+    }
+
     if (connection) {
       businessDBConn = connection;
     } else {
@@ -528,109 +380,92 @@ export async function saveLicenseTransactionInDB(
     }
 
     if (proceed) {
-      if (transactionData.id) {
+      if (inputMode === MODIFY) {
         query = `
           UPDATE license_tran SET
-            license_id = ?,
-            tran_type = ?,
-            old_product_variant_id = ?,
-            new_product_variant_id = ?,
-            current_no_of_users = ?,
-            modifed_no_of_users = ?,
-            balance_no_of_users = ?,
-            current_no_of_months = ?,
-            modifed_no_of_months = ?,
-            balance_no_of_months = ?,
-            old_dealer_id = ?,
-            new_dealer_id = ?,
-            current_expiry_date_with_grace = ?,
-            current_expiry_date_without_grace = ?,
-            new_expiry_date_with_grace = ?,
-            new_expiry_date_without_grace = ?,
-            addon_id = ?,
-            current_addon_plan_id = ?,
-            new_addon_plan_id = ?,
-            remarks = ?,
-            payment_type = ?,
-            payment_ref_no = ?,
-            payment_amt = ?,
-            tran_nature = ?,
-            scheme_id = ?,
+            vch_no = ?, 
+            license_id = ?, 
+            tran_type = ?, 
+            product_variant_id = ?, 
+            no_of_users = ?, 
+            no_of_months = ?, 
+            dealer_id = ?, 
+            addon_id = ?, 
+            addon_plan_id = ?, 
+            remarks = ?, 
+            payment_mode = ?, 
+            payment_ref_no = ?, 
+            payment_amt = ?, 
+            scheme_id = ?, 
+            tran_nature = ?, 
             updated_by = ?
           WHERE id = ?
         `;
         values = [
+          transactionData.vch_no,
           transactionData.license_id,
           transactionData.tran_type,
-          transactionData.old_product_variant_id,
-          transactionData.new_product_variant_id,
-          transactionData.current_no_of_users,
-          transactionData.modifed_no_of_users,
-          transactionData.balance_no_of_users,
-          transactionData.current_no_of_months,
-          transactionData.modifed_no_of_months,
-          transactionData.balance_no_of_months,
-          transactionData.old_dealer_id,
-          transactionData.new_dealer_id,
-          transactionData.current_expiry_date_with_grace,
-          transactionData.current_expiry_date_without_grace,
-          transactionData.new_expiry_date_with_grace,
-          transactionData.new_expiry_date_without_grace,
+          transactionData.product_variant_id,
+          transactionData.no_of_users,
+          transactionData.no_of_months,
+          transactionData.dealer_id,
           transactionData.addon_id,
-          transactionData.current_addon_plan_id,
-          transactionData.new_addon_plan_id,
+          transactionData.addon_plan_id,
           transactionData.remarks,
-          transactionData.payment_type,
+          transactionData.payment_mode,
           transactionData.payment_ref_no,
           transactionData.payment_amt,
-          transactionData.tran_nature,
           transactionData.scheme_id,
+          transactionData.tran_nature,
           transactionData.updated_by,
           transactionData.id,
         ];
       } else {
         query = `
           INSERT INTO license_tran (
-            license_id, tran_type, old_product_variant_id, new_product_variant_id,
-            current_no_of_users, modifed_no_of_users, balance_no_of_users,
-            current_no_of_months, modifed_no_of_months, balance_no_of_months,
-            old_dealer_id, new_dealer_id, current_expiry_date_with_grace,
-            current_expiry_date_without_grace, new_expiry_date_with_grace,
-            new_expiry_date_without_grace, addon_id, current_addon_plan_id,
-            new_addon_plan_id, remarks, payment_type, payment_ref_no,
-            payment_amt, scheme_id, created_by
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            vch_no, 
+            license_id, 
+            tran_type, 
+            product_variant_id, 
+            no_of_users, 
+            no_of_months, 
+            dealer_id, 
+            addon_id, 
+            addon_plan_id, 
+            remarks, 
+            payment_mode, 
+            payment_ref_no, 
+            payment_amt, 
+            scheme_id, 
+            tran_nature, 
+            created_by, 
+            updated_by
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         values = [
+          transactionData.vch_no,
           transactionData.license_id,
           transactionData.tran_type,
-          transactionData.old_product_variant_id,
-          transactionData.new_product_variant_id,
-          transactionData.current_no_of_users,
-          transactionData.modifed_no_of_users,
-          transactionData.balance_no_of_users,
-          transactionData.current_no_of_months,
-          transactionData.modifed_no_of_months,
-          transactionData.balance_no_of_months,
-          transactionData.old_dealer_id,
-          transactionData.new_dealer_id,
-          transactionData.current_expiry_date_with_grace,
-          transactionData.current_expiry_date_without_grace,
-          transactionData.new_expiry_date_with_grace,
-          transactionData.new_expiry_date_without_grace,
+          transactionData.product_variant_id,
+          transactionData.no_of_users,
+          transactionData.no_of_months,
+          transactionData.dealer_id,
           transactionData.addon_id,
-          transactionData.current_addon_plan_id,
-          transactionData.new_addon_plan_id,
+          transactionData.addon_plan_id,
           transactionData.remarks,
-          transactionData.payment_type,
+          transactionData.payment_mode,
           transactionData.payment_ref_no,
           transactionData.payment_amt,
           transactionData.scheme_id,
+          transactionData.tran_nature,
           transactionData.created_by,
+          transactionData.updated_by,
         ];
       }
 
       result = await executeQueryInBusinessDB(query, values, businessDBConn);
+
+      console.log("result : ", result);
 
       if (result.affectedRows <= 0) {
         proceed = false;
@@ -639,6 +474,142 @@ export async function saveLicenseTransactionInDB(
         if (!transactionData.id) {
           transactionData.id = result.insertId;
         }
+      }
+    }
+
+    if (proceed && inputMode === ADD) {
+      query = `
+          UPDATE license_tran SET vch_no = ? WHERE id = ?`;
+      values = ["AD-" + String(transactionData.id), transactionData.id];
+
+      result = await executeQueryInBusinessDB(query, values, businessDBConn);
+
+      if (result.affectedRows <= 0) {
+        proceed = false;
+        errMsg = "Error updating vch_no.";
+      }
+    }
+
+    if (proceed) {
+      result = await loadLicenseStatus(transactionData.license_id);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        licenseStatusData = result.data;
+      }
+    }
+
+    if (
+      proceed &&
+      transactionData.no_of_months &&
+      (transactionData.tran_type === LICENSE_TRAN_EXTEND_VALIDITY ||
+        transactionData.tran_type === LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY)
+    ) {
+      const pendingMonths = getPendingMonthsFromExpiry(
+        licenseStatusData.expiry_date
+      );
+
+      result = await getDiscountAndGrace4ExtendingValidityFromDB(
+        licenseStatusData.product_variant_id,
+        pendingMonths + transactionData.no_of_months
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        if (result.data) {
+          licenseStatusData.grace = result.data.grace;
+        }
+      }
+    }
+
+    if (proceed) {
+      if (transactionData.tran_type === LICENSE_TRAN_ASSIGN_DEALER_2_LICENSE) {
+        licenseStatusData.last_dealer_id = transactionData.dealer_id;
+      } else if (transactionData.tran_type === LICENSE_TRAN_EXTEND_VARIANT) {
+        licenseStatusData.product_variant_id =
+          transactionData.product_variant_id as number;
+      } else if (
+        transactionData.tran_type === LICENSE_TRAN_EXTEND_VALIDITY &&
+        transactionData.no_of_months &&
+        licenseStatusData?.expiry_date
+      ) {
+        licenseStatusData.expiry_date = calculateExpiryDateByMonths(
+          licenseStatusData?.expiry_date,
+          transactionData.no_of_months
+        );
+      } else if (
+        transactionData.tran_type === LICENSE_TRAN_EXTEND_USERS &&
+        transactionData.no_of_users
+      ) {
+        licenseStatusData.no_of_users =
+          licenseStatusData.no_of_users + transactionData.no_of_users;
+      } else if (
+        transactionData.tran_type === LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY &&
+        transactionData.no_of_users &&
+        transactionData.no_of_months &&
+        licenseStatusData?.expiry_date
+      ) {
+        licenseStatusData.no_of_users =
+          licenseStatusData.no_of_users + transactionData.no_of_users;
+
+        licenseStatusData.expiry_date = calculateExpiryDateByMonths(
+          licenseStatusData?.expiry_date,
+          transactionData.no_of_months
+        );
+      }
+    }
+
+    if (proceed) {
+      result = await saveLicenseStatusInDB(licenseStatusData, businessDBConn);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await getCurrentDealerDet();
+      if (result.status) {
+        dealerData = result.data;
+      } else {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await getCurrentUserDet();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      } else {
+        userData = result.data;
+      }
+    }
+
+    if (proceed) {
+      dealerCreditTranData.tran_type = DEALER_CREDIT_TRAN_CONSUME_CREDITS;
+      dealerCreditTranData.license_tran_id = transactionData.id;
+      dealerCreditTranData.tran_date = new Date();
+
+      if (transactionData.payment_amt)
+        dealerCreditTranData.modified_credits = -transactionData.payment_amt;
+
+      dealerCreditTranData.dealer_id = dealerData.id;
+      dealerCreditTranData.created_by = userData.id;
+      dealerCreditTranData.updated_by = userData.id;
+    }
+
+    if (proceed) {
+      result = await saveDealerCreditTranInDB(
+        dealerCreditTranData,
+        businessDBConn
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
       }
     }
 
@@ -682,7 +653,7 @@ export async function generateLicenseNo4Product(product_id: number) {
   let values: any[];
   let result;
   let licenseNoIdentifier: string = "";
-  let generateLicenseCount: number = 0;
+  let generatedLicenseCount: number = 0;
   let generatedLicenseNo: string = "";
 
   try {
@@ -698,14 +669,20 @@ export async function generateLicenseNo4Product(product_id: number) {
     }
 
     if (proceed) {
-      query =
-        "select count(*) AS license_count from license_det where product_id=? AND DATE(created_at) = CURRENT_DATE()";
+      query = `
+        SELECT COUNT(*) AS license_count 
+        FROM license_det 
+        WHERE product_id = ? 
+        AND YEAR(created_at) = YEAR(CURRENT_DATE()) 
+        AND MONTH(created_at) = MONTH(CURRENT_DATE())
+      `;
       result = await executeQueryInBusinessDB(query, [product_id]);
+
       if (result.length <= 0) {
         proceed = false;
         errMsg = "Error loading generateLicenseCount";
       } else {
-        generateLicenseCount = result[0].license_count;
+        generatedLicenseCount = result[0].license_count;
       }
     }
 
@@ -717,7 +694,7 @@ export async function generateLicenseNo4Product(product_id: number) {
         licenseNoIdentifier +
         dateVal +
         monthVal +
-        String(generateLicenseCount + 1);
+        String(generatedLicenseCount + 1);
     }
 
     return {
@@ -734,5 +711,375 @@ export async function generateLicenseNo4Product(product_id: number) {
       data: null,
     };
   } finally {
+  }
+}
+
+export async function runDBValidationB4GeneratingLicense(
+  product_id: number,
+  dealer_id: number,
+  product_variant_id: number
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let query: string = "";
+
+  try {
+    if (proceed) {
+      query = "SELECT * from product_mast where id=?";
+      result = await executeQueryInBusinessDB(query, [product_id]);
+      if (result.length <= 0) {
+        proceed = false;
+        errMsg = "Invalid Product ID.";
+      }
+    }
+
+    if (proceed) {
+      query = "SELECT * from product_variants where product_id=? and id=?";
+      result = await executeQueryInBusinessDB(query, [
+        product_id,
+        product_variant_id,
+      ]);
+      if (result.length <= 0) {
+        proceed = false;
+        errMsg = "Invalid Variant ID.";
+      }
+    }
+
+    if (proceed && dealer_id) {
+      query = "SELECT * from dealer_mast where id=?";
+      result = await executeQueryInBusinessDB(query, [dealer_id]);
+      if (result.length <= 0) {
+        proceed = false;
+        errMsg = "Invalid Dealer ID.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function runDBValidationB4ValidatingLicenseExpiry(
+  license_id: number
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let query: string = "";
+
+  try {
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function runDBValidationB4SavingLicenseTran(
+  transactionData: licenseTranSchemaT
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let query: string = "";
+
+  try {
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function validateLicenseExpiryFromDB(license_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+  let query: string = "";
+  let expiryDate: Date | null = null;
+  let grace: number;
+  let inGracePeriod: boolean = false;
+
+  try {
+    query = "SELECT * FROM license_status WHERE id = ?";
+    result = await executeQueryInBusinessDB(query, [license_id]);
+
+    if (result.length <= 0) {
+      proceed = false;
+      errMsg = "Invalid License ID.";
+    } else {
+      const currentDate = new Date();
+      expiryDate = new Date(result[0].expiry_date);
+      grace = result[0].grace;
+
+      if (currentDate > expiryDate) {
+        proceed = false;
+        errMsg = "License Validity Expired.";
+
+        const expiryWithGrace = new Date(
+          expiryDate.getTime() + grace * 24 * 60 * 60 * 1000
+        );
+
+        if (currentDate <= expiryWithGrace) {
+          inGracePeriod = true;
+        }
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: {
+        expiry_date: expiryDate,
+        in_grace_period: inGracePeriod,
+      },
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseList4DealerFromDB(dealer_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+
+  try {
+    if (proceed) {
+      query = `SELECT ld.id, ld.license_no, 
+                      (SELECT name FROM product_mast WHERE id = ld.product_id) AS product_name, 
+                      ld.entity_identifier 
+               FROM license_det AS ld, license_status AS ls 
+               WHERE ld.id = ls.license_id 
+                 AND ls.last_dealer_id = ?`;
+
+      result = await executeQueryInBusinessDB(query, [dealer_id]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error fetching list.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "List loaded successfully." : errMsg,
+      data: proceed ? result : null,
+    };
+  } catch (error) {
+    console.error("Error loading list:", error);
+    return {
+      status: false,
+      message: error instanceof Error ? error.message : "Error loading list.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseStatusFromDB(license_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+
+  try {
+    if (proceed) {
+      query =
+        "SELECT (SELECT name FROM dealer_mast WHERE id = ls.last_dealer_id) AS dealer_name, (SELECT name FROM product_variants WHERE id = ls.product_variant_id) AS product_variant_name, ls.* FROM license_status AS ls WHERE ls.license_id = ?";
+      result = await executeQueryInBusinessDB(query, [license_id]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error fetching license_status.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "license_status loaded successfully." : errMsg,
+      data: proceed ? result[0] : null,
+    };
+  } catch (error) {
+    console.error("Error loading license_status:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error loading license_status.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseDetFromDB(license_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+
+  try {
+    if (proceed) {
+      query = "select * from license_det where id=?";
+      result = await executeQueryInBusinessDB(query, [license_id]);
+
+      if (result.length <= 0) {
+        proceed = false;
+        errMsg = "Error fetching license_det.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "license_det loaded successfully." : errMsg,
+      data: proceed ? result[0] : null,
+    };
+  } catch (error) {
+    console.error("Error loading license_det:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Error loading license_det.",
+      data: null,
+    };
+  }
+}
+
+export async function loadAddonStatus4LicenseFromDB(license_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+
+  try {
+    if (proceed) {
+      query =
+        "select (select name from addon_mast where id=ads.addon_id) as addon_name, (select plan_name from addon_plan where id=ads.addon_plan_id) as addon_plan_name,  ads.* from addon_status as ads where license_id=?";
+      result = await executeQueryInBusinessDB(query, [license_id]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error fetching addon.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Addon loaded successfully." : errMsg,
+      data: proceed ? result : null,
+    };
+  } catch (error) {
+    console.error("Error loading addon:", error);
+    return {
+      status: false,
+      message: error instanceof Error ? error.message : "Error loading addon.",
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseTranFromDB(tran_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+
+  try {
+    if (proceed) {
+      query = "select * from license_tran where id=?";
+      result = await executeQueryInBusinessDB(query, [tran_id]);
+
+      if (result.length <= 0) {
+        proceed = false;
+        errMsg = "Error fetching license_tran.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "license_tran loaded successfully." : errMsg,
+      data: proceed ? result[0] : null,
+    };
+  } catch (error) {
+    console.error("Error loading license_tran:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error ? error.message : "Error loading license_tran.",
+      data: null,
+    };
+  }
+}
+
+export async function checkIfLicenseExists4ProductFromDB(product_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+  let licenseExists: boolean = false;
+
+  try {
+    if (proceed) {
+      query = "select * from license_det where product_id=?";
+      result = await executeQueryInBusinessDB(query, [product_id]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error in checkIfLicenseExists4Product.";
+      } else {
+        if (result.length > 0) {
+          licenseExists = true;
+        }
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "license_tran loaded successfully." : errMsg,
+      data: proceed ? licenseExists : null,
+    };
+  } catch (error) {
+    console.error("Error in checkIfLicenseExists4Product:", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error in checkIfLicenseExists4Product.",
+      data: null,
+    };
   }
 }

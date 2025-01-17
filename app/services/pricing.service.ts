@@ -2,11 +2,13 @@
 
 import {
   addonPlansSchemaT,
+  licenseStatusSchemaT,
   userDiscountSlabSchemaT,
   validityDiscountSlabSchemaT,
   variantPricingSchemaT,
 } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
+import { initLicenseStatusData } from "../utils/common";
 
 export async function loadActiveAddonPlansFromDB(
   addon_id: number,
@@ -534,54 +536,88 @@ export async function saveVariantPricingInDB(
   let result;
   let query: string;
   let connection;
+  let values: any[];
 
   try {
     connection = await getBusinessDBConn();
     await connection.beginTransaction();
 
-    if (proceed) {
+    if (proceed && variantPricingData) {
       query = `
-        DELETE FROM variant_pricing 
-        WHERE product_id = ? 
-          AND product_variant_id = ?
-          AND (
-            effective_from > CURDATE() OR
-            effective_from = (
-              SELECT MAX(effective_from)
-              FROM variant_pricing
-              WHERE product_id = ?
-                AND product_variant_id = ?
-                AND effective_from <= CURDATE()
-            )
-          )
+        SELECT id 
+        FROM variant_pricing 
+        WHERE product_id = ? AND product_variant_id = ?
       `;
-      result = await executeQueryInBusinessDB(
+      const existingPricing = await executeQueryInBusinessDB(
         query,
-        [product_id, product_variant_id, product_id, product_variant_id],
+        [product_id, product_variant_id],
         connection
       );
 
-      if (result.affectedRows < 0) {
-        proceed = false;
-        errMsg = "Error deleting validity_discount_slabs.";
+      const existingPricingIds = existingPricing.map(
+        (pricing: { id: number }) => pricing.id
+      );
+      const newPricingIds = variantPricingData
+        .map((pricing) => pricing.id)
+        .filter(Boolean);
+
+      const pricingToDelete = existingPricingIds.filter(
+        (id: number) => !newPricingIds.includes(id)
+      );
+
+      if (pricingToDelete.length > 0) {
+        query = `DELETE FROM variant_pricing WHERE id IN (?)`;
+        result = await executeQueryInBusinessDB(
+          query,
+          [pricingToDelete],
+          connection
+        );
+
+        if (result.affectedRows < 0) {
+          proceed = false;
+          errMsg = "Error deleting obsolete variant_pricing.";
+        }
       }
-    }
 
-    if (proceed) {
-      query = `
-        INSERT INTO variant_pricing ( product_id,product_variant_id, effective_from, price,early_discount_percentage,  created_by)
-        VALUES (?, ?, ?, ?,?,?)
-      `;
-
-      for (const plan of variantPricingData) {
-        const values = [
-          plan.product_id,
-          plan.product_variant_id,
-          plan.effective_from,
-          plan.price,
-          plan.early_discount_percentage,
-          plan.created_by,
-        ];
+      for (const pricing of variantPricingData) {
+        if (pricing.id && existingPricingIds.includes(pricing.id)) {
+          query = `
+            UPDATE variant_pricing SET
+              effective_from = ?,
+              price = ?,
+              early_discount_percentage = ?,
+              updated_by = ?
+            WHERE id = ?
+          `;
+          values = [
+            pricing.effective_from,
+            pricing.price,
+            pricing.early_discount_percentage,
+            pricing.updated_by,
+            pricing.id,
+          ];
+        } else {
+          query = `
+            INSERT INTO variant_pricing (
+              product_id, 
+              product_variant_id, 
+              effective_from, 
+              price, 
+              early_discount_percentage, 
+              created_by, 
+              updated_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+          `;
+          values = [
+            pricing.product_id,
+            pricing.product_variant_id,
+            pricing.effective_from,
+            pricing.price,
+            pricing.early_discount_percentage,
+            pricing.created_by,
+            pricing.updated_by,
+          ];
+        }
 
         result = await executeQueryInBusinessDB(query, values, connection);
 
@@ -589,10 +625,8 @@ export async function saveVariantPricingInDB(
           proceed = false;
           errMsg = "Error saving one of the variant_pricing.";
           break;
-        } else {
-          if (!plan.id) {
-            plan.id = result.insertId;
-          }
+        } else if (!pricing.id) {
+          pricing.id = result.insertId;
         }
       }
     }
@@ -634,55 +668,92 @@ export async function saveUserDiscountSlabsInDB(
   let result;
   let query: string;
   let connection;
+  let values: any[];
 
   try {
     connection = await getBusinessDBConn();
     await connection.beginTransaction();
 
-    if (proceed) {
+    if (proceed && userDiscountSlabsData) {
       query = `
-        DELETE FROM user_discount_slab 
-        WHERE product_id = ? 
-          AND product_variant_id = ?
-          AND (
-            effective_from > CURDATE() OR
-            effective_from = (
-              SELECT MAX(effective_from)
-              FROM user_discount_slab
-              WHERE product_id = ?
-                AND product_variant_id = ?
-                AND effective_from <= CURDATE()
-            )
-          )
+        SELECT id 
+        FROM user_discount_slab 
+        WHERE product_id = ? AND product_variant_id = ?
       `;
-      result = await executeQueryInBusinessDB(
+      const existingSlabs = await executeQueryInBusinessDB(
         query,
-        [product_id, product_variant_id, product_id, product_variant_id],
+        [product_id, product_variant_id],
         connection
       );
 
-      if (result.affectedRows < 0) {
-        proceed = false;
-        errMsg = "Error deleting validity_discount_slabs.";
+      const existingSlabIds = existingSlabs.map(
+        (slab: { id: number }) => slab.id
+      );
+      const newSlabIds = userDiscountSlabsData
+        .map((slab) => slab.id)
+        .filter(Boolean);
+
+      const slabsToDelete = existingSlabIds.filter(
+        (id: number) => !newSlabIds.includes(id)
+      );
+
+      if (slabsToDelete.length > 0) {
+        query = `DELETE FROM user_discount_slab WHERE id IN (?)`;
+        result = await executeQueryInBusinessDB(
+          query,
+          [slabsToDelete],
+          connection
+        );
+
+        if (result.affectedRows < 0) {
+          proceed = false;
+          errMsg = "Error deleting obsolete user_discount_slabs.";
+        }
       }
-    }
 
-    if (proceed) {
-      query = `
-        INSERT INTO user_discount_slab ( product_id,product_variant_id, effective_from, start_value, end_value, discount_percentage,  created_by)
-        VALUES (?, ?, ?, ?,?,?,?)
-      `;
-
-      for (const plan of userDiscountSlabsData) {
-        const values = [
-          plan.product_id,
-          plan.product_variant_id,
-          plan.effective_from,
-          plan.start_value,
-          plan.end_value,
-          plan.discount_percentage,
-          plan.created_by,
-        ];
+      for (const slab of userDiscountSlabsData) {
+        if (slab.id && existingSlabIds.includes(slab.id)) {
+          query = `
+            UPDATE user_discount_slab SET
+              effective_from = ?,
+              start_value = ?,
+              end_value = ?,
+              discount_percentage = ?,
+              updated_by = ?
+            WHERE id = ?
+          `;
+          values = [
+            slab.effective_from,
+            slab.start_value,
+            slab.end_value,
+            slab.discount_percentage,
+            slab.updated_by,
+            slab.id,
+          ];
+        } else {
+          query = `
+            INSERT INTO user_discount_slab (
+              product_id, 
+              product_variant_id, 
+              effective_from, 
+              start_value, 
+              end_value, 
+              discount_percentage, 
+              created_by, 
+              updated_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          values = [
+            slab.product_id,
+            slab.product_variant_id,
+            slab.effective_from,
+            slab.start_value,
+            slab.end_value,
+            slab.discount_percentage,
+            slab.created_by,
+            slab.updated_by,
+          ];
+        }
 
         result = await executeQueryInBusinessDB(query, values, connection);
 
@@ -690,10 +761,8 @@ export async function saveUserDiscountSlabsInDB(
           proceed = false;
           errMsg = "Error saving one of the user_discount_slabs.";
           break;
-        } else {
-          if (!plan.id) {
-            plan.id = result.insertId;
-          }
+        } else if (!slab.id) {
+          slab.id = result.insertId;
         }
       }
     }
@@ -735,65 +804,96 @@ export async function saveValidityDiscountSlabsInDB(
   let result;
   let query: string;
   let connection;
+  let values: any[];
 
   try {
     connection = await getBusinessDBConn();
     await connection.beginTransaction();
 
-    if (proceed) {
+    if (proceed && validityDiscountSlabsData) {
       query = `
-        DELETE FROM validity_discount_slab 
-        WHERE product_id = ? 
-          AND product_variant_id = ?
-          AND (
-            effective_from > CURDATE() OR
-            effective_from = (
-              SELECT MAX(effective_from)
-              FROM validity_discount_slab
-              WHERE product_id = ?
-                AND product_variant_id = ?
-                AND effective_from <= CURDATE()
-            )
-          )
+        SELECT id 
+        FROM validity_discount_slab 
+        WHERE product_id = ? AND product_variant_id = ?
       `;
-      result = await executeQueryInBusinessDB(
+      const existingSlabs = await executeQueryInBusinessDB(
         query,
-        [product_id, product_variant_id, product_id, product_variant_id],
+        [product_id, product_variant_id],
         connection
       );
 
-      if (result.affectedRows < 0) {
-        proceed = false;
-        errMsg = "Error deleting validity_discount_slabs.";
+      const existingSlabIds = existingSlabs.map(
+        (slab: { id: number }) => slab.id
+      );
+      const newSlabIds = validityDiscountSlabsData
+        .map((slab) => slab.id)
+        .filter(Boolean);
+
+      const slabsToDelete = existingSlabIds.filter(
+        (id: number) => !newSlabIds.includes(id)
+      );
+
+      if (slabsToDelete.length > 0) {
+        query = `DELETE FROM validity_discount_slab WHERE id IN (?)`;
+        result = await executeQueryInBusinessDB(
+          query,
+          [slabsToDelete],
+          connection
+        );
+
+        if (result.affectedRows < 0) {
+          proceed = false;
+          errMsg = "Error deleting obsolete validity_discount_slabs.";
+        }
       }
-    }
 
-    if (proceed) {
-      query = `
-        INSERT INTO validity_discount_slab (
-          product_id, 
-          product_variant_id, 
-          effective_from, 
-          start_value, 
-          end_value, 
-          discount_percentage, 
-          grace, 
-          created_by
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-      for (const plan of validityDiscountSlabsData) {
-        const values = [
-          plan.product_id,
-          plan.product_variant_id,
-          plan.effective_from,
-          plan.start_value,
-          plan.end_value,
-          plan.discount_percentage,
-          plan.grace,
-          plan.created_by,
-        ];
+      for (const slab of validityDiscountSlabsData) {
+        if (slab.id && existingSlabIds.includes(slab.id)) {
+          query = `
+            UPDATE validity_discount_slab SET
+              effective_from = ?,
+              start_value = ?,
+              end_value = ?,
+              discount_percentage = ?,
+              grace = ?,
+              updated_by = ?
+            WHERE id = ?
+          `;
+          values = [
+            slab.effective_from,
+            slab.start_value,
+            slab.end_value,
+            slab.discount_percentage,
+            slab.grace,
+            slab.updated_by,
+            slab.id,
+          ];
+        } else {
+          query = `
+            INSERT INTO validity_discount_slab (
+              product_id, 
+              product_variant_id, 
+              effective_from, 
+              start_value, 
+              end_value, 
+              discount_percentage, 
+              grace, 
+              created_by, 
+              updated_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          values = [
+            slab.product_id,
+            slab.product_variant_id,
+            slab.effective_from,
+            slab.start_value,
+            slab.end_value,
+            slab.discount_percentage,
+            slab.grace,
+            slab.created_by,
+            slab.updated_by,
+          ];
+        }
 
         result = await executeQueryInBusinessDB(query, values, connection);
 
@@ -801,10 +901,8 @@ export async function saveValidityDiscountSlabsInDB(
           proceed = false;
           errMsg = "Error saving one of the validity_discount_slabs.";
           break;
-        } else {
-          if (!plan.id) {
-            plan.id = result.insertId;
-          }
+        } else if (!slab.id) {
+          slab.id = result.insertId;
         }
       }
     }
@@ -847,66 +945,90 @@ export async function saveAddonPlansInDB(
   let result;
   let query: string;
   let connection;
+  let values: any[];
 
   try {
     connection = await getBusinessDBConn();
     await connection.beginTransaction();
 
-    if (proceed) {
+    if (proceed && addonPlansData) {
       query = `
-        DELETE FROM addon_plan 
-        WHERE addon_id = ? 
-          AND product_id = ? 
-          AND product_variant_id = ?
-          AND (
-              effective_from > CURDATE() OR
-              effective_from = (
-                  SELECT MAX(effective_from)
-                  FROM addon_plan
-                  WHERE addon_id = ?
-                    AND product_id = ?
-                    AND product_variant_id = ?
-                    AND effective_from <= CURDATE()
-              )
-          )
+        SELECT id 
+        FROM addon_plan 
+        WHERE addon_id = ? AND product_id = ? AND product_variant_id = ?
       `;
-      result = await executeQueryInBusinessDB(
+      const existingAddonPlans = await executeQueryInBusinessDB(
         query,
-        [
-          addon_id,
-          product_id,
-          product_variant_id,
-          addon_id,
-          product_id,
-          product_variant_id,
-        ],
+        [addon_id, product_id, product_variant_id],
         connection
       );
 
-      if (result.affectedRows < 0) {
-        proceed = false;
-        errMsg = "Error deleting addon_plans.";
-      }
-    }
+      const existingAddonPlanIds = existingAddonPlans.map(
+        (plan: { id: number }) => plan.id
+      );
+      const newAddonPlanIds = addonPlansData
+        .map((plan) => plan.id)
+        .filter(Boolean);
 
-    if (proceed) {
-      query = `
-        INSERT INTO addon_plan (addon_id, product_id,product_variant_id, effective_from, plan_name, value, price, grace, created_by)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
+      const addonPlansToDelete = existingAddonPlanIds.filter(
+        (id: number) => !newAddonPlanIds.includes(id)
+      );
+
+      if (addonPlansToDelete.length > 0) {
+        query = `DELETE FROM addon_plan WHERE id IN (?)`;
+        result = await executeQueryInBusinessDB(
+          query,
+          [addonPlansToDelete],
+          connection
+        );
+
+        if (result.affectedRows < 0) {
+          proceed = false;
+          errMsg = "Error deleting obsolete addon_plans.";
+        }
+      }
 
       for (const plan of addonPlansData) {
-        const values = [
-          plan.addon_id,
-          plan.product_id,
-          plan.product_variant_id,
-          plan.effective_from,
-          plan.plan_name,
-          plan.value,
-          plan.price,
-          plan.grace,
-          plan.created_by,
-        ];
+        if (plan.id && existingAddonPlanIds.includes(plan.id)) {
+          query = `
+            UPDATE addon_plan SET
+              effective_from = ?,
+              plan_name = ?,
+              value = ?,
+              price = ?,
+              grace = ?,
+              updated_by = ?
+            WHERE id = ?
+          `;
+          values = [
+            plan.effective_from,
+            plan.plan_name,
+            plan.value,
+            plan.price,
+            plan.grace,
+            plan.updated_by,
+            plan.id,
+          ];
+        } else {
+          query = `
+            INSERT INTO addon_plan (
+              addon_id, product_id, product_variant_id, effective_from, 
+              plan_name, value, price, grace, created_by, updated_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          values = [
+            plan.addon_id,
+            plan.product_id,
+            plan.product_variant_id,
+            plan.effective_from,
+            plan.plan_name,
+            plan.value,
+            plan.price,
+            plan.grace,
+            plan.created_by,
+            plan.updated_by,
+          ];
+        }
 
         result = await executeQueryInBusinessDB(query, values, connection);
 
@@ -914,10 +1036,8 @@ export async function saveAddonPlansInDB(
           proceed = false;
           errMsg = "Error saving one of the addon_plans.";
           break;
-        } else {
-          if (!plan.id) {
-            plan.id = result.insertId;
-          }
+        } else if (!plan.id) {
+          plan.id = result.insertId;
         }
       }
     }
@@ -944,5 +1064,234 @@ export async function saveAddonPlansInDB(
     };
   } finally {
     if (connection) connection.end();
+  }
+}
+
+// export async function getCreditsReqd4ExtendingVariantFromDB(
+//   product_variant_id: number
+// ) {
+//   let proceed: boolean = true;
+//   let errMsg: string = "";
+//   let result;
+//   let price;
+//   let requiredCredits;
+
+//   try {
+//     if (proceed) {
+//       const query = `
+//         SELECT vp.price
+//         FROM variant_pricing vp
+//         WHERE vp.product_variant_id = ?
+//         AND vp.effective_from <= CURDATE()
+//         ORDER BY vp.effective_from ASC
+//         LIMIT 1;
+//       `;
+
+//       result = await executeQueryInBusinessDB(query, [product_variant_id]);
+
+//       if (result.length > 0) {
+//         price = result[0].price;
+//       } else if (result.length === 0) {
+//         // proceed = false;
+//         // errMsg = "No prices configured for this variant.";
+//       } else {
+//         proceed = false;
+//         errMsg = "Error in getCreditsReqd4ExtendingVariantFromDB.";
+//       }
+//     }
+
+//     if (proceed) {
+//       requiredCredits = price;
+//     }
+
+//     return {
+//       status: proceed,
+//       message: proceed ? "Success" : errMsg,
+//       data: proceed ? requiredCredits : null,
+//     };
+//   } catch (error) {
+//     console.error("Error in getCreditsReqd4ExtendingVariantFromDB : ", error);
+//     return {
+//       status: false,
+//       message:
+//         error instanceof Error
+//           ? error.message
+//           : "Error in getCreditsReqd4ExtendingVariantFromDB",
+//       data: null,
+//     };
+//   }
+// }
+
+export async function getUnitPriceAndEarlyDiscount4VariantFromDB(
+  product_variant_id: number
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let unitPrice: number = 0;
+  let earlyDiscount: number = 0;
+  let query: string = "";
+
+  try {
+    if (proceed) {
+      query = `
+        SELECT vp.price, vp.early_discount_percentage
+        FROM variant_pricing vp
+        WHERE vp.product_variant_id = ?
+        AND vp.effective_from <= CURDATE()  
+        ORDER BY vp.effective_from ASC   
+        LIMIT 1;
+      `;
+
+      result = await executeQueryInBusinessDB(query, [product_variant_id]);
+
+      if (result.length > 0) {
+        unitPrice = result[0].price;
+        earlyDiscount = result[0].early_discount_percentage;
+      } else if (result.length === 0) {
+        // proceed = false;
+        // errMsg = "No prices configured for this variant.";
+      } else {
+        proceed = false;
+        errMsg = "Error in getUnitPriceAndEarlyDiscount4VariantFromDB.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? { unitPrice, earlyDiscount } : null,
+    };
+  } catch (error) {
+    console.error(
+      "Error in getUnitPriceAndEarlyDiscount4VariantFromDB : ",
+      error
+    );
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error in getUnitPriceAndEarlyDiscount4VariantFromDB",
+      data: null,
+    };
+  }
+}
+
+export async function getDiscount4ExtendingUsersFromDB(
+  product_variant_id: number,
+  no_of_users: number
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let discount: number = 0;
+  let query: string = "";
+
+  try {
+    if (proceed) {
+      query = `
+        SELECT uds.discount_percentage
+        FROM user_discount_slab uds
+        WHERE uds.product_variant_id = ?
+        AND uds.effective_from <= CURDATE()  
+        AND start_value >= ?
+        AND end_value <= ?
+        ORDER BY uds.effective_from ASC   
+        LIMIT 1;
+      `;
+
+      result = await executeQueryInBusinessDB(query, [
+        product_variant_id,
+        no_of_users,
+        no_of_users,
+      ]);
+
+      if (result.length > 0) {
+        discount = result[0].price;
+      
+      } else if (result.length === 0) {
+      } else {
+        proceed = false;
+        errMsg = "Error in getDiscount4ExtendingUsersFromDB.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? discount : null,
+    };
+  } catch (error) {
+    console.error("Error in getDiscount4ExtendingUsersFromDB : ", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error in getDiscount4ExtendingUsersFromDB",
+      data: null,
+    };
+  }
+}
+
+export async function getDiscountAndGrace4ExtendingValidityFromDB(
+  product_variant_id: number,
+  no_of_months: number
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let discount: number = 0;
+  let grace: number = 0;
+  let query: string = "";
+
+  try {
+    if (proceed) {
+      query = `
+        SELECT vds.discount_percentage, vds.grace
+        FROM validity_discount_slab vds
+        WHERE vds.product_variant_id = ?
+        AND vds.effective_from <= CURDATE()  
+        AND start_value >= ?
+        AND end_value <= ?
+        ORDER BY vds.effective_from ASC   
+        LIMIT 1;
+      `;
+
+      result = await executeQueryInBusinessDB(query, [
+        product_variant_id,
+        no_of_months,
+        no_of_months,
+      ]);
+
+      if (result.length > 0) {
+        discount = result[0].price;
+        grace = result[0].grace;
+      } else if (result.length === 0) {
+      } else {
+        proceed = false;
+        errMsg = "Error in getDiscountAndGrace4ExtendingValidityFromDB.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? { discount, grace } : null,
+    };
+  } catch (error) {
+    console.error(
+      "Error in getDiscountAndGrace4ExtendingValidityFromDB : ",
+      error
+    );
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error in getDiscountAndGrace4ExtendingValidityFromDB",
+      data: null,
+    };
   }
 }

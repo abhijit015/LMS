@@ -6,7 +6,7 @@ import {
   getBusinessDBConn,
   getUserDBConn,
 } from "../utils/db";
-import { getCurrentRole } from "../controllers/business.controller";
+import { getCurrentUserRole } from "../controllers/business.controller";
 import { getCurrentDealerDet } from "../controllers/dealer.controller";
 import { ROLE_DEALER_ADMIN } from "../utils/constants";
 
@@ -56,7 +56,7 @@ export async function loadDepartmentListFromDB() {
 
   try {
     if (proceed) {
-      result = await getCurrentRole();
+      result = await getCurrentUserRole();
       if (!result.status) {
         proceed = false;
         errMsg = result.message;

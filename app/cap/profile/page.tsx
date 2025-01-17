@@ -50,6 +50,7 @@ const Profile = () => {
 
       const fetchUserData = async () => {
         try {
+          setLoading(true);
           if (proceed) {
             result = await getCurrentUserDet();
             console.log("result : ", result);
@@ -190,7 +191,7 @@ const Profile = () => {
           boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
           backgroundColor: "#fff",
           mb: 2,
-          width: "450px",
+          width: "100%",
         }}
       >
         <CardContent>
@@ -200,7 +201,6 @@ const Profile = () => {
 
           <form ref={formRef} onSubmit={handleSubmit}>
             <TextField
-              fullWidth
               label="Name"
               name="name"
               size="small"

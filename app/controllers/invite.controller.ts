@@ -12,7 +12,10 @@ import {
   ROLE_DEALER_ADMIN,
 } from "../utils/constants";
 import { inviteSchemaT } from "../utils/models";
-import { getCurrentBusinessDet, getCurrentRole } from "./business.controller";
+import {
+  getCurrentBusinessDet,
+  getCurrentUserRole,
+} from "./business.controller";
 import { getCurrentDealerDet } from "./dealer.controller";
 import { getCurrentUserDet } from "./user.controller";
 
@@ -47,7 +50,7 @@ export async function setInviteDataB4Saving(inviteData: inviteSchemaT) {
     }
 
     if (proceed && !inviteData.id) {
-      result = await getCurrentRole();
+      result = await getCurrentUserRole();
       if (!result.status) {
         proceed = false;
         errMsg = result.message;
@@ -67,7 +70,6 @@ export async function setInviteDataB4Saving(inviteData: inviteSchemaT) {
     }
 
     if (proceed) {
-      
       if (!inviteData.id) {
         inviteData.created_by = userData.id;
         inviteData.business_id = businessData.id;

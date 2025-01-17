@@ -2,14 +2,19 @@
 
 import { getCurrentBusinessDet } from "../controllers/business.controller";
 import { loadDealer } from "../controllers/dealer.controller";
-import { ROLE_DEALER_ADMIN } from "../utils/constants";
+import { initDepartmentData, initExecutiveData } from "../utils/common";
 import {
   executeQueryInBusinessDB,
   executeQueryInUserDB,
   getBusinessDBConn,
   getUserDBConn,
 } from "../utils/db";
-import { dealerSchemaT, inviteSchemaT } from "../utils/models";
+import {
+  dealerSchemaT,
+  departmentSchemaT,
+  executiveSchemaT,
+  inviteSchemaT,
+} from "../utils/models";
 import { loadInviteFromDB, saveInviteInDB } from "./invite.service";
 
 export async function loadDealerListFromDB() {
@@ -103,6 +108,8 @@ export async function saveDealerInDB(
   let userDBConn;
   let result;
   let oldDealerData: dealerSchemaT | null = null;
+  let executiveData: executiveSchemaT = initExecutiveData();
+  let departmentData: departmentSchemaT = initDepartmentData();
 
   try {
     businessDBConn = await getBusinessDBConn();
@@ -120,6 +127,7 @@ export async function saveDealerInDB(
         oldDealerData = result.data;
       }
     }
+
     if (proceed && dealerData.send_invitation) {
       result = await saveInviteInDB(inviteData, userDBConn);
       if (!result.status) {
@@ -169,7 +177,76 @@ export async function saveDealerInDB(
         errMsg = "Error saving dealer.";
       } else {
         if (!dealerData.id) {
-          dealerData.id = result.insertId;
+          dealerData.id = Number(result.insertId);
+        }
+      }
+    }
+
+    if (proceed && !oldDealerData && dealerData.created_by) {
+      departmentData.name = "Admin";
+      departmentData.dealer_id = dealerData.id;
+      departmentData.created_by = dealerData.created_by;
+      departmentData.updated_by = dealerData.created_by;
+
+      query = `
+              INSERT INTO department_mast (name,dealer_id,created_by,updated_by)
+              VALUES (?,?,?,?)
+            `;
+      values = [
+        departmentData.name,
+        departmentData.dealer_id,
+        departmentData.created_by,
+        departmentData.updated_by,
+      ];
+
+      result = await executeQueryInBusinessDB(query, values, businessDBConn);
+
+      if (result.affectedRows < 0) {
+        proceed = false;
+        errMsg = "Error saving department.";
+      } else {
+        if (!departmentData.id) {
+          departmentData.id = result.insertId;
+        }
+      }
+    }
+
+    if (
+      proceed &&
+      !oldDealerData &&
+      departmentData.id &&
+      dealerData.created_by
+    ) {
+      executiveData.name = dealerData.name;
+      executiveData.role_id = 1;
+      executiveData.department_id = departmentData.id;
+      executiveData.contact_name = dealerData.contact_name;
+      executiveData.dealer_id = dealerData.id;
+      executiveData.created_by = dealerData.created_by;
+      executiveData.updated_by = dealerData.created_by;
+
+      query = `
+                INSERT INTO executive_mast (name,contact_name,department_id,role_id,dealer_id,created_by,updated_by)
+                VALUES (?,?,?,?,?,?,?)
+              `;
+      values = [
+        executiveData.name,
+        executiveData.contact_name,
+        executiveData.department_id,
+        executiveData.role_id,
+        executiveData.dealer_id,
+        executiveData.created_by,
+        executiveData.updated_by,
+      ];
+
+      result = await executeQueryInBusinessDB(query, values, businessDBConn);
+
+      if (result.affectedRows < 0) {
+        proceed = false;
+        errMsg = "Error saving executive.";
+      } else {
+        if (!executiveData.id) {
+          executiveData.id = result.insertId;
         }
       }
     }
@@ -478,6 +555,32 @@ export async function deleteDealerFromDB(dealerId: number) {
 
     if (proceed) {
       query = `
+        DELETE FROM executive_mast WHERE dealer_id = ?
+      `;
+      values = [dealerId];
+      result = await executeQueryInBusinessDB(query, values, businessDBConn);
+
+      if (result.affectedRows < 0) {
+        proceed = false;
+        errMsg = "Error deleting executive_mast.";
+      }
+    }
+
+    if (proceed) {
+      query = `
+        DELETE FROM department_mast WHERE dealer_id = ?
+      `;
+      values = [dealerId];
+      result = await executeQueryInBusinessDB(query, values, businessDBConn);
+
+      if (result.affectedRows < 0) {
+        proceed = false;
+        errMsg = "Error deleting department_mast.";
+      }
+    }
+
+    if (proceed) {
+      query = `
         DELETE FROM dealer_product_mapping WHERE dealer_id = ?
       `;
       values = [dealerId];
@@ -485,7 +588,7 @@ export async function deleteDealerFromDB(dealerId: number) {
 
       if (result.affectedRows < 0) {
         proceed = false;
-        errMsg = "Error deleting old dealer license parameters.";
+        errMsg = "Error deleting dealer_product_mapping.";
       }
     }
 
@@ -552,5 +655,43 @@ export async function deleteDealerFromDB(dealerId: number) {
   } finally {
     if (businessDBConn) businessDBConn.end();
     if (userDBConn) userDBConn.end();
+  }
+}
+
+export async function getDealerCreditBalanceFromDB(dealer_id: number) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let query;
+  let totalCreditsAssigned: number = 0;
+
+  try {
+    if (proceed) {
+      query = `SELECT sum(modified_credits) AS totalCredits FROM dealer_credit_tran WHERE dealer_id = ?`;
+      result = await executeQueryInBusinessDB(query, [dealer_id]);
+
+      if (result.length > 0) {
+        totalCreditsAssigned = result[0].totalCredits;
+      } else {
+        proceed = false;
+        errMsg = "Error fetching totals credits assigned to dealer.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? totalCreditsAssigned : null,
+    };
+  } catch (error) {
+    console.error("Error fetching totals credits assigned to dealer.", error);
+    return {
+      status: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Error fetching totals credits assigned to dealer.",
+      data: null,
+    };
   }
 }

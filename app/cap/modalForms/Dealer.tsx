@@ -29,6 +29,7 @@ import { loadInvite } from "@/app/controllers/invite.controller";
 import { INVITE_STATUS_ACCEPTED } from "@/app/utils/constants";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import theme from "../theme/theme";
 
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
@@ -394,7 +395,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
 
             <Box
               sx={{
-                border: "1px solid grey",
+                border: "1px solid #ccc",
                 borderRadius: 2,
                 padding: 2,
                 mt: 3,
@@ -410,7 +411,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
                   left: "10px",
                   backgroundColor: "#fff",
                   paddingRight: "10px",
-                  color: "#005a9f",
+                  color: theme.palette.secondary.main,
                 }}
               >
                 Contact Details
@@ -497,15 +498,15 @@ const DealerModal: React.FC<DealerModalProps> = ({
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
             >
-              <Button onClick={onClose} disabled={loading} variant="outlined">
-                Quit
-              </Button>
               <Button type="submit" variant="contained" disabled={loading}>
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (
                   "Save"
                 )}
+              </Button>{" "}
+              <Button onClick={onClose} disabled={loading} variant="outlined">
+                Quit
               </Button>
             </Box>
           </form>
