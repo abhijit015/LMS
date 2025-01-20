@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
@@ -47,6 +48,7 @@ import {
 import { updateUserBusinessMappingStatus } from "@/app/controllers/user.controller";
 import { loadInvite, saveInvite } from "@/app/controllers/invite.controller";
 import { initInviteData } from "@/app/utils/common";
+import CategoryIcon from "@mui/icons-material/Category";
 
 interface DealerList {
   id: number;
@@ -289,7 +291,7 @@ const Dealers = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -390,7 +392,7 @@ const Dealers = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -441,7 +443,7 @@ const Dealers = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -507,7 +509,7 @@ const Dealers = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -543,17 +545,32 @@ const Dealers = () => {
               mb: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Dealers
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
-                variant="outlined"
+                variant="contained"
                 onClick={handleAddDealer}
                 disabled={loading}
                 size="small"
                 startIcon={<AddIcon />}
+                sx={{
+                  backgroundColor: "primary.light",
+                  "&:hover": {
+                    backgroundColor: "primary.main",
+                  },
+                }}
               >
                 Add Dealer
               </Button>
@@ -641,7 +658,7 @@ const Dealers = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

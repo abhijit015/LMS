@@ -1,16 +1,13 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
-  Button,
-  IconButton,
   TextField,
   InputAdornment,
   Card,
   CardContent,
-  Menu,
-  MenuItem,
   Alert,
   Snackbar,
   Typography,
@@ -29,8 +26,7 @@ import { loadRoleList } from "@/app/controllers/role.controller";
 import { roleSchemaT } from "@/app/utils/models";
 import ConfirmationModal from "../modalForms/AskYesNo";
 import RoleModal from "../modalForms/Role";
-import EditIcon from "@mui/icons-material/Edit";
-import AddIcon from "@mui/icons-material/Add";
+import CategoryIcon from "@mui/icons-material/Category";
 
 const Roles = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,7 +127,7 @@ const Roles = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -192,7 +188,16 @@ const Roles = () => {
               mb: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Roles
             </Typography>
 
@@ -262,7 +267,7 @@ const Roles = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

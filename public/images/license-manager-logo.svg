@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 40">
+  <!-- License Icon -->
+  <path d="M20 8 L32 8 L32 32 L20 32 Z" fill="#1976d2" />
+  <path d="M24 16 L28 16 L28 20 L24 20 Z" fill="white" />
+  <circle cx="26" cy="24" r="2" fill="white" />
+  
+  <!-- Text Elements -->
+  <text x="45" y="25" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#1976d2">License</text>
+  <text x="105" y="25" font-family="Arial, sans-serif" font-size="16" fill="#757575">Manager</text>
+</svg>

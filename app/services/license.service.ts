@@ -1,5 +1,6 @@
 "use server";
 
+import { handleErrorMsg } from "../utils/common";
 import {
   dealerCreditTranSchemaT,
   dealerSchemaT,
@@ -54,10 +55,8 @@ export async function generateLicenseInDB(
         console.log("license_det locked successfully.");
       } catch (error) {
         proceed = false;
-        errMsg: error instanceof Error
-          ? error.message
-          : "Error locking license_det",
-          console.error(error);
+        errMsg = handleErrorMsg(error);
+        console.error(error);
       }
     }
 
@@ -126,8 +125,7 @@ export async function generateLicenseInDB(
     console.error("Error generating license:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error generating license",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -225,10 +223,7 @@ export async function saveLicenseDetailInDB(
     console.error("Error saving license details:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error saving license details.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -335,10 +330,7 @@ export async function saveLicenseStatusInDB(
     console.error("Error saving license status:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error saving license details.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -633,10 +625,7 @@ export async function saveLicenseTranInDB(
     console.error("Error saving license transaction:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error saving license transaction.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -706,8 +695,7 @@ export async function generateLicenseNo4Product(product_id: number) {
     console.error("Error generating license no.:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error generating license no.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -763,8 +751,7 @@ export async function runDBValidationB4GeneratingLicense(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -787,8 +774,7 @@ export async function runDBValidationB4ValidatingLicenseExpiry(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -811,8 +797,7 @@ export async function runDBValidationB4SavingLicenseTran(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -864,8 +849,7 @@ export async function validateLicenseExpiryFromDB(license_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -903,7 +887,7 @@ export async function loadLicenseList4DealerFromDB(dealer_id: number) {
     console.error("Error loading list:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading list.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -936,10 +920,7 @@ export async function loadLicenseStatusFromDB(license_id: number) {
     console.error("Error loading license_status:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading license_status.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -971,14 +952,13 @@ export async function loadLicenseDetFromDB(license_id: number) {
     console.error("Error loading license_det:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading license_det.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
 }
 
-export async function loadAddonStatus4LicenseFromDB(license_id: number) {
+export async function loadAllAddonStatus4LicenseFromDB(license_id: number) {
   let proceed: boolean = true;
   let errMsg: string = "";
   let query;
@@ -987,7 +967,7 @@ export async function loadAddonStatus4LicenseFromDB(license_id: number) {
   try {
     if (proceed) {
       query =
-        "select (select name from addon_mast where id=ads.addon_id) as addon_name, (select plan_name from addon_plan where id=ads.addon_plan_id) as addon_plan_name,  ads.* from addon_status as ads where license_id=?";
+        "select (select name from addon_mast where id=ads.addon_id) as addon_name, (select plan_name from addon_plan where id=ads.addon_plan_id) as addon_plan_name, (select value from addon_plan where id=ads.addon_plan_id) as addon_plan_value, ads.* from addon_status as ads where license_id=?";
       result = await executeQueryInBusinessDB(query, [license_id]);
 
       if (result.length < 0) {
@@ -1005,7 +985,43 @@ export async function loadAddonStatus4LicenseFromDB(license_id: number) {
     console.error("Error loading addon:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading addon.",
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
+export async function loadAddonStatus4LicenseFromDB(
+  license_id: number,
+  addon_id: number
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+
+  try {
+    if (proceed) {
+      query =
+        "select (select name from addon_mast where id=ads.addon_id) as addon_name, (select plan_name from addon_plan where id=ads.addon_plan_id) as addon_plan_name, (select value from addon_plan where id=ads.addon_plan_id) as addon_plan_value,  ads.* from addon_status as ads where license_id=? and addon_id=?";
+      result = await executeQueryInBusinessDB(query, [license_id, addon_id]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error fetching addon.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Addon loaded successfully." : errMsg,
+      data: proceed ? result[0] : null,
+    };
+  } catch (error) {
+    console.error("Error loading addon:", error);
+    return {
+      status: false,
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1037,8 +1053,7 @@ export async function loadLicenseTranFromDB(tran_id: number) {
     console.error("Error loading license_tran:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading license_tran.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1075,10 +1090,7 @@ export async function checkIfLicenseExists4ProductFromDB(product_id: number) {
     console.error("Error in checkIfLicenseExists4Product:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error in checkIfLicenseExists4Product.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

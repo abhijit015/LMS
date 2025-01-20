@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
@@ -30,8 +31,8 @@ import {
   deleteProduct,
   loadProductList,
 } from "@/app/controllers/product.controller";
-import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import CategoryIcon from "@mui/icons-material/Category";
 
 interface ProductList {
   id: number;
@@ -161,7 +162,7 @@ const Products = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -227,7 +228,7 @@ const Products = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -263,17 +264,32 @@ const Products = () => {
               mb: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Products
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
-                variant="outlined"
+                variant="contained"
                 onClick={handleAddProduct}
                 disabled={loading}
                 size="small"
                 startIcon={<AddIcon />}
+                sx={{
+                  backgroundColor: "primary.light",
+                  "&:hover": {
+                    backgroundColor: "primary.main",
+                  },
+                }}
               >
                 Add Product
               </Button>
@@ -343,7 +359,7 @@ const Products = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

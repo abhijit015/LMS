@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import {
   deleteAssignCreditTranFromDB,
@@ -33,8 +34,7 @@ export async function loadAssignCreditList() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -62,8 +62,7 @@ export async function loadAssignCreditTran(id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -91,8 +90,7 @@ export async function deleteAssignCreditTran(id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -136,8 +134,7 @@ export async function saveDealerCreditTran(data: dealerCreditTranSchemaT) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -179,8 +176,7 @@ export async function setDealerCreditTranDataB4Saving(
     console.error("Error while setting license data before saving :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -219,8 +215,7 @@ export async function canDealerCreditTranBeSaved(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -107,7 +108,7 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -276,6 +277,7 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -301,11 +303,10 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
                   fontWeight: "normal",
                 }}
               >
-                {dealerCreditTranId
-                  ? "Edit Assign Credits Transaction"
-                  : "Assign Credits"}
+                {dealerCreditTranId ? "Modify Transaction" : "Assign Credits"}
               </Typography>
             </Box>
+
             <IconButton
               onClick={onClose}
               disabled={loading}
@@ -323,7 +324,8 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
           <form onSubmit={handleSubmit}>
             <Box sx={{ display: "flex", gap: 2, mb: 3, mt: 3 }}>
               <TextField
-                sx={{ width: "30%" }}
+                fullWidth
+                // sx={{ width: "30%" }}
                 type="date"
                 autoComplete="off"
                 size="small"
@@ -339,29 +341,8 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
                 }
                 onChange={handleChange}
               />
-              <Autocomplete
-                // key={`dealer-${selectedDealerValue}`}
-                sx={{ width: "70%" }}
-                fullWidth
-                autoFocus
-                size="small"
-                disabled={loading}
-                options={dealers}
-                value={selectedDealerValue}
-                defaultValue={selectedDealerValue}
-                getOptionLabel={(option) => option.name}
-                onChange={handleDealerChange}
-                renderInput={(params) => (
-                  <TextField required {...params} label="Dealer" />
-                )}
-              />
-            </Box>
-
-            {/* <Box sx={{ display: "flex", gap: 2, mb: 3 }}></Box> */}
-
-            <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
               <TextField
-                sx={{ width: "30%" }}
+                // sx={{ width: "30%" }}
                 fullWidth
                 type="date"
                 autoComplete="off"
@@ -380,7 +361,7 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
               />
 
               <TextField
-                sx={{ width: "40%" }}
+                // sx={{ width: "40%" }}
                 fullWidth
                 autoComplete="off"
                 label="Invoice No."
@@ -392,7 +373,26 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
                 defaultValue={dealerCreditTranData?.invoice_no || ""}
                 onChange={handleChange}
               />
+            </Box>
 
+            {/* <Box sx={{ display: "flex", gap: 2, mb: 3 }}></Box> */}
+
+            <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+              <Autocomplete
+                sx={{ width: "70%" }}
+                fullWidth
+                autoFocus
+                size="small"
+                disabled={loading}
+                options={dealers}
+                value={selectedDealerValue}
+                defaultValue={selectedDealerValue}
+                getOptionLabel={(option) => option.name}
+                onChange={handleDealerChange}
+                renderInput={(params) => (
+                  <TextField required {...params} label="Dealer" />
+                )}
+              />
               <TextField
                 sx={{ width: "30%" }}
                 fullWidth
@@ -481,7 +481,7 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

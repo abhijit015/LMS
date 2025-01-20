@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -162,7 +163,7 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -209,7 +210,7 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -325,6 +326,7 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -364,54 +366,62 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
 
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
-              mb: 2,
+              border: "1px solid #ccc",
+              borderRadius: 2,
+              padding: 2,
               mt: 3,
+              mb: 3,
+              position: "relative",
             }}
           >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              License No.
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {licenseDet?.license_no || ""}
-            </Typography>
-          </Box>
+            <legend
+              style={{
+                fontSize: "0.95rem",
+                padding: "0 10px",
+                position: "absolute",
+                top: "-12px",
+                left: "10px",
+                backgroundColor: "#fff",
+                paddingRight: "10px",
+                color: theme.palette.secondary.dark,
+              }}
+            >
+              Current User Details
+            </legend>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
-              mb: 2,
-            }}
-          >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              Current Users
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {formatNum(licenseStatus?.no_of_users) || ""}
-            </Typography>
-          </Box>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "120px 20px auto",
+                alignItems: "start",
+                mb: 2,
+                mt: 1,
+              }}
+            >
+              <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                Current Users
+              </Typography>
+              <Typography sx={{ textAlign: "left" }}>:</Typography>
+              <Typography sx={{ textAlign: "left" }}>
+                {formatNum(licenseStatus?.no_of_users) || ""}
+              </Typography>
+            </Box>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
-              mb: 2,
-            }}
-          >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              {productData?.name} Users
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {formatNum(productUsers)}
-            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "120px 20px auto",
+                alignItems: "start",
+              }}
+            >
+              <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                {productData?.name} Users
+              </Typography>
+              <Typography sx={{ textAlign: "left" }}>:</Typography>
+              <Typography sx={{ textAlign: "left" }}>
+                {formatNum(productUsers)}
+              </Typography>
+            </Box>
           </Box>
 
           <form onSubmit={handleSubmit}>
@@ -434,10 +444,10 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
                   left: "10px",
                   backgroundColor: "#fff",
                   paddingRight: "10px",
-                  color: theme.palette.secondary.main,
+                  color: theme.palette.secondary.dark,
                 }}
               >
-                Extension Details
+                Specify Extension Details
               </legend>
 
               <Box
@@ -560,7 +570,7 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

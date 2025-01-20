@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import mariadb, { Connection } from "mariadb";
 import { inviteSchemaT } from "../utils/models";
@@ -10,7 +11,9 @@ import {
 import { getCurrentUserDet } from "../controllers/user.controller";
 import {
   INVITE_STATUS_ACCEPTED,
+  INVITE_STATUS_CANCELLED,
   INVITE_STATUS_PENDING,
+  ROLE_BUSINESS_ADMIN,
   ROLE_DEALER_ADMIN,
   ROLE_DEALER_EXECUTIVE,
   USER_BUSINESS_MAPPING_STATUS_ACTIVE,
@@ -49,7 +52,7 @@ export async function loadInviteFromDB(id: number) {
     console.error("Error loading invite:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading invite.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -130,7 +133,7 @@ export async function loadInvite4CurrentBusinessFromDB() {
     console.error("Error loading invite:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading invite.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -178,7 +181,7 @@ export async function loadInvite4CurrentUserFromDB() {
     console.error("Error loading invite:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading invite.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -332,8 +335,7 @@ export async function saveInviteInDB(
         } catch (error) {
           if (businessDBConn) await businessDBConn.rollback();
           proceed = false;
-          errMsg =
-            error instanceof Error ? error.message : "Unknown error occurred.";
+          errMsg = handleErrorMsg(error);
           console.error("Error updating mapped user in dealers table:", error);
         } finally {
           if (businessDBConn) await businessDBConn.end();
@@ -380,11 +382,72 @@ export async function saveInviteInDB(
     console.error("Error saving invite:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error saving invite.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
     if (businessDBConn) await businessDBConn.end();
     if (userDBConn && !connection) await userDBConn.end();
+  }
+}
+
+export async function runDBValidationsB4SavingInvite(
+  inviteData: inviteSchemaT
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let query: string = "";
+
+  try {
+    if (proceed) {
+      query =
+        "select um.* from user_mast as um, user_business_mapping as ubm where um.id=ubm.user_id and ubm.business_id=? and (um.email=? or um.phone=?) and role=?";
+      result = await executeQueryInUserDB(query, [
+        inviteData.business_id,
+        inviteData.identifier,
+        inviteData.identifier,
+        ROLE_BUSINESS_ADMIN,
+      ]);
+      if (result.length > 0) {
+        proceed = false;
+        errMsg =
+          "The email or phone number is associated with the business admin, so an invite cannot be sent.";
+      } else if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error in runDBValidationsB4SavingInvite";
+      }
+    }
+
+    if (proceed) {
+      query =
+        "select * from invite_mast where identifier=? and status<>? and business_id=? and entity_id<>?";
+      result = await executeQueryInUserDB(query, [
+        inviteData.identifier,
+        INVITE_STATUS_CANCELLED,
+        inviteData.business_id,
+        inviteData.entity_id,
+      ]);
+      if (result.length > 0) {
+        proceed = false;
+        errMsg =
+          "An invitation has already been sent to this email or phone number, so it cannot be sent again.";
+      } else if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error in runDBValidationsB4SavingInvite";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
   }
 }

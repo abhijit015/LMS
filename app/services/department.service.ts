@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { departmentSchemaT } from "../utils/models";
 import {
@@ -39,8 +40,7 @@ export async function loadDepartmentFromDB(id: number) {
     console.error("Error loading department:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading department.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -98,8 +98,7 @@ export async function loadDepartmentListFromDB() {
     console.error("Error loading departments:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading departments.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -145,8 +144,7 @@ export async function deleteDepartmentFromDB(departmentId: number) {
     console.error("Error deleting department:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error deleting department.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -220,8 +218,7 @@ export async function saveDepartmentInDB(departmentData: departmentSchemaT) {
     console.error("Error saving department:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error saving department.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {

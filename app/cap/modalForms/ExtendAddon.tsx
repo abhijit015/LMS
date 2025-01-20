@@ -1,4 +1,6 @@
 "use client";
+
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -17,19 +19,24 @@ import ConfirmationModal from "./AskYesNo";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   loadLicenseDet,
-  loadLicenseStatus,
+  loadAllAddonStatus4License,
   saveLicenseTran,
+  loadAddonStatus4License,
+  loadLicenseStatus,
 } from "@/app/controllers/license.controller";
 import {
   productVariantsSchemaT,
   licenseDetSchemaT,
-  licenseStatusSchemaT,
+  addonStatusSchemaT,
   licenseTranSchemaT,
   dealerSchemaT,
   dealerCreditTranSchemaT,
+  addonSchemaT,
+  addonPlansSchemaT,
 } from "@/app/utils/models";
 import { licenseTranSchema } from "@/app/utils/zodschema";
 import {
+  LICENSE_TRAN_EXTEND_ADD_ON,
   LICENSE_TRAN_EXTEND_VARIANT,
   LICENSE_TRAN_NATURE_GENERAL,
   PAYMENT_MODE_CREDITS,
@@ -45,11 +52,16 @@ import {
   initDealerCreditLedgerData,
   initLicenseTranData,
 } from "@/app/utils/common";
-import { getCreditsReqd4ExtendingLicenseParam } from "@/app/controllers/pricing.controller";
+import {
+  getCreditsReqd4ExtendingLicenseParam,
+  loadCurrentAddonPlans,
+} from "@/app/controllers/pricing.controller";
+import { loadAddon, loadAddonList } from "@/app/controllers/addon.controller";
 
 interface ExtendAddonProps {
   open: boolean;
   licenseId: number;
+  addonId?: number;
   onClose: () => void;
   onSave: () => void;
 }
@@ -57,6 +69,7 @@ interface ExtendAddonProps {
 const ExtendAddon: React.FC<ExtendAddonProps> = ({
   open,
   licenseId,
+  addonId,
   onClose,
   onSave,
 }) => {
@@ -66,11 +79,17 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
   const [dealerData, setDealerData] = useState<dealerSchemaT>();
   const [availableCredits, setAvailableCredits] = useState<number>(0);
   const [requiredCredits, setRequiredCredits] = useState<number>(0);
-  const [licenseStatus, setLicenseStatus] = useState<licenseStatusSchemaT>();
-  const [variants, setVariants] = useState<productVariantsSchemaT[]>([]);
-  const [selectedVariantId, setSelectedVariantId] = useState<number>(0);
-  const [selectedVariantValue, setSelectedVariantValue] =
-    useState<productVariantsSchemaT | null>(null);
+  const [addonStatus, setAddonStatus] = useState<addonStatusSchemaT|null>(null);
+  const [addons, setAddons] = useState<addonSchemaT[]>([]);
+  const [addonPlans, setAddonPlans] = useState<addonPlansSchemaT[]>([]);
+  const [productId, setProductId] = useState<number>(0);
+  const [variantId, setVariantId] = useState<number>(0);
+  const [selectedAddonId, setSelectedAddonId] = useState<number>(0);
+  const [selectedAddonValue, setSelectedAddonValue] =
+    useState<addonSchemaT | null>(null);
+  const [selectedAddonPlanId, setSelectedAddonPlanId] = useState<number>(0);
+  const [selectedAddonPlanValue, setSelectedAddonPlanValue] =
+    useState<addonPlansSchemaT | null>(null);
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
     title: "",
@@ -87,14 +106,15 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
   const hasLoadedData = useRef(false);
 
   useEffect(() => {
+    console.log(addonId);
     const fetchData = async () => {
       try {
         let proceed = true;
         let errMsg = "";
         let result: { status: boolean; data?: any; message: string };
-        let productId: number = 0;
-        let currentVariantId: number = 0;
         let dealerId: number = 0;
+        let productId: number = 0;
+        let variantId: number = 0;
 
         setLoading(true);
 
@@ -106,6 +126,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
           } else {
             setLicenseDet(result.data as licenseDetSchemaT);
             productId = result.data.product_id;
+            setProductId(productId);
           }
         }
 
@@ -115,45 +136,49 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
             proceed = false;
             errMsg = result.message;
           } else {
-            setLicenseStatus(result.data as licenseStatusSchemaT);
-            currentVariantId = result.data.product_variant_id;
+            variantId = result.data.product_variant_id;
+            setVariantId(variantId);
           }
         }
 
-        // if (proceed) {
-        //   result = await loadProduct(productId);
-        //   if (result.status) {
-        //     const loadedVariants = result.data
-        //       .variants as unknown as productVariantsSchemaT[];
-
-        //     const filteredVariants = loadedVariants.filter(
-        //       (variant) => variant.id !== currentVariantId
-        //     );
-        //     setVariants(filteredVariants);
-        //   } else {
-        //     proceed = false;
-        //     errMsg = result.message;
-        //   }
-        // }
-
-        if (proceed) {
-          result = await loadProduct(productId);
-          if (result.status) {
-            const loadedVariants = result.data
-              .variants as unknown as productVariantsSchemaT[];
-
-            // Filter variants based on the condition for free variants
-            const filteredVariants = loadedVariants.filter((variant) => {
-              if (variant.id === currentVariantId) {
-                return false; // Keep the current variant
-              }
-              // If the current variant is not free, filter out free variants
-              return currentVariantId !== 0 && !variant.is_free_variant;
-            });
-            setVariants(filteredVariants);
-          } else {
+        if (proceed && addonId) {
+          result = await loadCurrentAddonPlans(addonId, productId, variantId);
+          if (!result.status) {
             proceed = false;
             errMsg = result.message;
+          } else {
+            setAddonPlans(result.data as addonPlansSchemaT[]);
+          }
+        }
+
+        if (proceed && addonId) {
+          result = await loadAddonStatus4License(licenseId, addonId);
+          if (!result.status) {
+            proceed = false;
+            errMsg = result.message;
+          } else {
+            setAddonStatus(result.data as addonStatusSchemaT);
+          }
+        }
+
+        if (proceed && addonId) {
+          result = await loadAddon(addonId);
+          if (!result.status) {
+            proceed = false;
+            errMsg = result.message;
+          } else {
+            setSelectedAddonValue(result.data as addonSchemaT);
+            setSelectedAddonId(addonId);
+          }
+        }
+
+        if (proceed && !addonId) {
+          result = await loadAddonList();
+          if (!result.status) {
+            proceed = false;
+            errMsg = result.message;
+          } else {
+            setAddons(result.data as addonSchemaT[]);
           }
         }
 
@@ -188,7 +213,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -203,11 +228,76 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
       setErrors({});
       setAvailableCredits(0);
       setRequiredCredits(0);
-      setSelectedVariantId(0);
-      setSelectedVariantValue(null);
+      setSelectedAddonId(0);
+      setSelectedAddonValue(null);
+      setSelectedAddonPlanId(0);
+      setSelectedAddonPlanValue(null);
+      setAddonStatus(null);
       hasLoadedData.current = false;
     }
   }, [open]);
+
+  const handleAddonChange = async (
+    event: React.SyntheticEvent<Element, Event>,
+    value: any
+  ) => {
+    try {
+      let proceed = true;
+      let errMsg = "";
+      let result: { status: boolean; data?: any; message: string };
+
+      setLoading(true);
+
+      if (value) {
+        setSelectedAddonId(value.id);
+        setSelectedAddonValue(value);
+      } else {
+        setSelectedAddonId(0);
+        setSelectedAddonValue(null);
+      }
+
+      if (proceed && value) {
+        result = await loadCurrentAddonPlans(value.id, productId, variantId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setAddonPlans(result.data as addonPlansSchemaT[]);
+        }
+      }
+
+      if (!proceed) {
+        setSnackbar({
+          open: true,
+          message: errMsg,
+          severity: "error",
+        });
+      }
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: handleErrorMsg(error),
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlanChange = (
+    event: React.SyntheticEvent<Element, Event>,
+    value: any
+  ) => {
+    if (value) {
+      setSelectedAddonPlanId(value.id);
+      setSelectedAddonPlanValue(value);
+    } else {
+      setSelectedAddonPlanId(0);
+      setSelectedAddonPlanValue(null);
+    }
+
+    setRequiredCredits(value.price);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -217,8 +307,8 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
       initDealerCreditLedgerData();
 
     //license tran data-------------------------------------
-    licenseTranData.product_variant_id = selectedVariantId;
-    licenseTranData.tran_type = LICENSE_TRAN_EXTEND_VARIANT;
+    // licenseTranData.product_variant_id = selectedAddonId;
+    licenseTranData.tran_type = LICENSE_TRAN_EXTEND_ADD_ON;
     if (licenseDet?.id) {
       licenseTranData.license_id = licenseDet?.id;
     }
@@ -284,58 +374,6 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
     setSnackbar((prevState) => ({ ...prevState, open: false }));
   };
 
-  const handleVariantChange = async (
-    event: React.SyntheticEvent<Element, Event>,
-    value: any
-  ) => {
-    try {
-      let proceed = true;
-      let errMsg = "";
-      let result: { status: boolean; data?: any; message: string };
-
-      setLoading(true);
-
-      if (value) {
-        setSelectedVariantId(value.id);
-        setSelectedVariantValue(value);
-      } else {
-        setSelectedVariantId(0);
-        setSelectedVariantValue(null);
-        setRequiredCredits(0);
-      }
-
-      if (proceed && value && licenseDet?.id) {
-        result = await getCreditsReqd4ExtendingLicenseParam(
-          licenseDet?.id,
-          LICENSE_TRAN_EXTEND_VARIANT,
-          value.id
-        );
-        if (!result.status) {
-          proceed = false;
-          errMsg = result.message;
-        } else {
-          setRequiredCredits(result.data);
-        }
-      }
-
-      if (!proceed) {
-        setSnackbar({
-          open: true,
-          message: errMsg,
-          severity: "error",
-        });
-      }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: String(error),
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <>
       <Modal
@@ -358,6 +396,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -378,7 +417,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
                   fontWeight: "normal",
                 }}
               >
-                Extend Addon
+                {addonId ? "Extend Add-on" : "Add Add-on"}
               </Typography>
             </Box>
             <IconButton
@@ -395,39 +434,101 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
 
           <Divider />
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
-              mb: 2,
-              mt: 3,
-            }}
-          >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              License No.
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {licenseDet?.license_no || ""}
-            </Typography>
-          </Box>
+          {addonId !== 0 && addonStatus && (
+            <Box
+              sx={{
+                border: "1px solid #ccc",
+                borderRadius: 2,
+                padding: 2,
+                mt: 4,
+                mb: 3,
+                position: "relative",
+              }}
+            >
+              <legend
+                style={{
+                  fontSize: "0.95rem",
+                  padding: "0 10px",
+                  position: "absolute",
+                  top: "-12px",
+                  left: "10px",
+                  backgroundColor: "#fff",
+                  paddingRight: "10px",
+                  color: theme.palette.secondary.dark,
+                }}
+              >
+                Current Add-on Plan Details
+              </legend>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
-            }}
-          >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              Current Variant
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {licenseStatus?.product_variant_name || ""}
-            </Typography>
-          </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "120px 20px auto",
+                  alignItems: "start",
+                  mb: 2,
+                  mt: 1,
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                  Add-on
+                </Typography>
+                <Typography sx={{ textAlign: "left" }}>:</Typography>
+                <Typography sx={{ textAlign: "left" }}>
+                  {selectedAddonValue?.name}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "120px 20px auto",
+                  alignItems: "start",
+                  mb: 2,
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                  Current Plan
+                </Typography>
+                <Typography sx={{ textAlign: "left" }}>:</Typography>
+                <Typography sx={{ textAlign: "left" }}>
+                  {addonStatus.addon_plan_name}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "120px 20px auto",
+                  alignItems: "start",
+                  mb: 2,
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                  Plan Value
+                </Typography>
+                <Typography sx={{ textAlign: "left" }}>:</Typography>
+                <Typography sx={{ textAlign: "left" }}>
+                  {formatNum(addonStatus.addon_plan_value)}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "120px 20px auto",
+                  alignItems: "start",
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                  Balance
+                </Typography>
+                <Typography sx={{ textAlign: "left" }}>:</Typography>
+                <Typography sx={{ textAlign: "left" }}>
+                  {formatNum(addonStatus.balance_addon_value)}
+                </Typography>
+              </Box>
+            </Box>
+          )}
 
           <form onSubmit={handleSubmit}>
             {" "}
@@ -450,23 +551,41 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
                   left: "10px",
                   backgroundColor: "#fff",
                   paddingRight: "10px",
-                  color: theme.palette.secondary.main,
+                  color: theme.palette.secondary.dark,
                 }}
               >
-                New Variant Details
+                New Add-on Plan Details
               </legend>
+
+              {!addonId && (
+                <Autocomplete
+                  fullWidth
+                  autoFocus
+                  size="small"
+                  disabled={loading}
+                  options={addons}
+                  value={selectedAddonValue}
+                  getOptionLabel={(option) => option.name}
+                  onChange={handleAddonChange}
+                  sx={{ mt: 2 }}
+                  renderInput={(params) => (
+                    <TextField required {...params} label="Select Add-on" />
+                  )}
+                />
+              )}
+
               <Autocomplete
                 fullWidth
                 autoFocus
                 size="small"
-                disabled={loading}
-                options={variants}
-                value={selectedVariantValue}
-                getOptionLabel={(option) => option.name}
-                onChange={handleVariantChange}
+                disabled={loading || !selectedAddonValue}
+                options={addonPlans}
+                value={selectedAddonPlanValue}
+                getOptionLabel={(option) => option.plan_name}
+                onChange={handlePlanChange}
                 sx={{ mt: 2 }}
                 renderInput={(params) => (
-                  <TextField required {...params} label="Assign New Variant" />
+                  <TextField required {...params} label="Select Plan" />
                 )}
               />
 
@@ -476,6 +595,43 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
                   gridTemplateColumns: "150px 20px auto",
                   alignItems: "start",
                   mt: 3,
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                  Plan Value
+                </Typography>
+                <Typography sx={{ textAlign: "left" }}>:</Typography>
+                <Typography sx={{ textAlign: "left" }}>
+                  {formatNum(selectedAddonPlanValue?.value)}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "150px 20px auto",
+                  alignItems: "start",
+                  mt: 2,
+                }}
+              >
+                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                  New Balance
+                </Typography>
+                <Typography sx={{ textAlign: "left" }}>:</Typography>
+                <Typography sx={{ textAlign: "left" }}>
+                  {formatNum(
+                    (selectedAddonPlanValue?.value || 0) +
+                      (addonStatus?.balance_addon_value || 0)
+                  )}
+                </Typography>
+              </Box>
+
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "150px 20px auto",
+                  alignItems: "start",
+                  mt: 2,
                 }}
               >
                 <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
@@ -512,7 +668,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
                 variant="contained"
                 disabled={
                   loading ||
-                  !selectedVariantId ||
+                  !selectedAddonId ||
                   requiredCredits > availableCredits
                 }
               >
@@ -549,7 +705,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

@@ -1,5 +1,8 @@
+"use server";
+
 import { addonSchemaT } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
+import { handleErrorMsg } from "../utils/common";
 
 export async function loadAddonFromDB(id: number) {
   let proceed: boolean = true;
@@ -30,7 +33,7 @@ export async function loadAddonFromDB(id: number) {
     console.error("Error loading addon:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading addon.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -62,7 +65,7 @@ export async function loadAddonListFromDB() {
     console.error("Error loading addons:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading addons.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -108,7 +111,7 @@ export async function deleteAddonFromDB(addonId: number) {
     console.error("Error deleting addon:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error deleting addon.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -173,7 +176,7 @@ export async function saveAddonInDB(addonData: addonSchemaT) {
     console.error("Error saving addon:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error saving addon.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -199,8 +202,7 @@ export async function runDBValidationsB4DeletingAddon(addonID: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -224,8 +226,7 @@ export async function runDBValidationsB4SavingAddon(addonData: addonSchemaT) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

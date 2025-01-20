@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import {
   checkIfPhoneExistsFromDB,
@@ -42,10 +43,7 @@ export async function checkIfMailExists(email: string) {
     console.error("Error during user validation:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "An error occurred while validating the user.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -74,10 +72,7 @@ export async function checkIfPhoneExists(phone: string) {
     console.error("Error during user validation:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "An error occurred while validating the user.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -111,10 +106,7 @@ export async function saveOTPEntry(
     console.error("Error during saving otp entry in db:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "An error occurred while saving otp entry in db.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -148,10 +140,7 @@ export async function validateOTP(
     console.error("Error during validating:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "An error occurred while validating otp.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -182,8 +171,7 @@ export async function updateUserBusinessMappingStatus(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -229,10 +217,7 @@ export async function validateSignIn(username: string, password: string) {
     console.error("Error during user validation:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "An error occurred while validating the user.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -256,8 +241,7 @@ export async function setUserDataB4Saving(data: userSchemaT) {
     console.error("Error while setting data before saving:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -302,8 +286,7 @@ export async function saveUser(data: userSchemaT) {
     console.error("Error saving user:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -341,8 +324,7 @@ export async function canUserBeSaved(data: userSchemaT) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -377,8 +359,7 @@ export async function loadUser(id: number) {
     console.error("Error while loading user:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -414,8 +395,7 @@ export async function getCurrentUserDet() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

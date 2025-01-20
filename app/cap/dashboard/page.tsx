@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import React, { useState } from "react";
 import Layout from "../layout";
@@ -65,7 +66,7 @@ const Dashboard = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

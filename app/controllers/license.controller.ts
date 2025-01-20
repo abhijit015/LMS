@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import {
   licenseDetSchemaT,
@@ -10,6 +11,7 @@ import {
   checkIfLicenseExists4ProductFromDB,
   generateLicenseInDB,
   loadAddonStatus4LicenseFromDB,
+  loadAllAddonStatus4LicenseFromDB,
   loadLicenseDetFromDB,
   loadLicenseList4DealerFromDB,
   loadLicenseStatusFromDB,
@@ -113,8 +115,7 @@ export async function generateLicense(data: any) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -210,8 +211,7 @@ async function setDataB4GeneratingLicense(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -256,8 +256,7 @@ async function canLicenseBeGenerated(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -294,8 +293,7 @@ export async function validateLicenseExpiry(data: any) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -333,8 +331,7 @@ export async function validateDataB4ValidatingLicenseExpiry(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -374,8 +371,7 @@ export async function loadLicenseList4Dealer() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -404,8 +400,7 @@ export async function loadLicenseStatus(license_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -434,21 +429,20 @@ export async function loadLicenseDet(license_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
 }
 
-export async function loadAddonStatus4License(license_id: number) {
+export async function loadAllAddonStatus4License(license_id: number) {
   let errMsg: string = "";
   let proceed: boolean = true;
   let result;
 
   try {
     if (proceed) {
-      result = await loadAddonStatus4LicenseFromDB(license_id);
+      result = await loadAllAddonStatus4LicenseFromDB(license_id);
 
       if (!result.status) {
         proceed = false;
@@ -464,8 +458,36 @@ export async function loadAddonStatus4License(license_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
+export async function loadAddonStatus4License(license_id: number,addon_id: number) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadAddonStatus4LicenseFromDB(license_id,addon_id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -494,8 +516,7 @@ export async function loadLicenseTran(tran_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -540,8 +561,7 @@ export async function setLicenseTranDataB4Saving(
     );
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -586,8 +606,7 @@ export async function saveLicenseTran(transactionData: licenseTranSchemaT) {
     console.error("Error saving license tran:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -635,8 +654,7 @@ export async function canLicenseTranBeSaved(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -665,8 +683,7 @@ export async function checkIfLicenseExists4Product(product_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

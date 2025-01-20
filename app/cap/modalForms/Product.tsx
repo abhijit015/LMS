@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -142,6 +143,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
         if (proceed && productId) {
           setLoading(true);
           result = await loadProduct(productId);
+          console.log("result : ", result);
           if (result.status) {
             setProductData(result.data as productSchemaT);
             setRows(result.data.variants);
@@ -172,7 +174,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -185,6 +187,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
       hasLoadedData.current = true;
     } else if (!open) {
       setProductData(null);
+      setLicenseExists(false);
       setErrors({});
       setRows([]);
       hasLoadedData.current = false;
@@ -489,6 +492,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
             p: 2,
             borderRadius: 2,
             outline: "none",
+            border: "1px solid",
           }}
         >
           <Box
@@ -517,6 +521,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 {productId ? "Edit Product" : "Add Product"}
               </Typography>
             </Box>
+
             <IconButton
               onClick={onClose}
               disabled={loading}
@@ -641,7 +646,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

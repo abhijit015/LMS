@@ -204,6 +204,7 @@ const BusinessModal: React.FC<BusinessModalProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -214,24 +215,26 @@ const BusinessModal: React.FC<BusinessModalProps> = ({
               mb: 1,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {businessId ? (
-                <EditIcon sx={{ color: "primary.main" }} />
-              ) : (
-                <AddIcon sx={{ color: "primary.main" }} />
-              )}
-              <Typography
-                variant="h6"
-                component="h2"
-                sx={{
-                  color: "primary.main",
-                  textAlign: "left",
-                  fontWeight: "normal",
-                }}
-              >
-                {businessId ? "Edit Business" : "Add Business"}
-              </Typography>
-            </Box>
+           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+  {businessId ? (
+    <EditIcon sx={{ color: "primary.main" }} />
+  ) : (
+    <AddIcon sx={{ color: "primary.main" }} />
+  )}
+  <Typography
+    variant="h6"
+    component="h2"
+    sx={{
+      color: "primary.main",
+      textAlign: "left",
+      fontWeight: "normal",
+    }}
+  >
+    {businessId ? "Edit Business" : "Add Business"}
+  </Typography>
+</Box>
+
+
             <IconButton
               onClick={onClose}
               disabled={loading}
@@ -295,7 +298,7 @@ const BusinessModal: React.FC<BusinessModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
@@ -32,6 +33,7 @@ import {
   deleteAssignCreditTran,
   loadAssignCreditList,
 } from "@/app/controllers/credit.controller";
+import CategoryIcon from "@mui/icons-material/Category";
 
 interface CreditList {
   id: number;
@@ -217,7 +219,7 @@ const Credits = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -299,7 +301,7 @@ const Credits = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -335,17 +337,32 @@ const Credits = () => {
               mb: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Credits Management
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
-                variant="outlined"
+                variant="contained"
                 onClick={handleAddCredit}
                 disabled={loading}
                 size="small"
                 startIcon={<AddIcon />}
+                sx={{
+                  backgroundColor: "primary.light",
+                  "&:hover": {
+                    backgroundColor: "primary.main",
+                  },
+                }}
               >
                 Assign Credits
               </Button>
@@ -415,7 +432,7 @@ const Credits = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

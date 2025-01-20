@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -84,7 +85,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -209,6 +210,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -237,6 +239,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
                 {addonId ? "Edit Addon" : "Add Addon"}
               </Typography>
             </Box>
+
             <IconButton
               onClick={onClose}
               disabled={loading}
@@ -306,7 +309,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import { validateOTP } from "@/app/controllers/user.controller";
+import { handleErrorMsg } from "@/app/utils/common";
 
 interface OTPModalProps {
   open: boolean;
@@ -83,8 +84,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
       setLoading(false);
     } catch (error) {
       proceed = false;
-      errMsg =
-        error instanceof Error ? error.message : "Error during OTP validation.";
+      errMsg = handleErrorMsg(error);
     } finally {
       setLoading(false);
     }
@@ -114,6 +114,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
             borderRadius: 3,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box

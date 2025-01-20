@@ -3,6 +3,7 @@ import {
   validateLicenseExpiry,
 } from "@/app/controllers/license.controller";
 import { NextRequest, NextResponse } from "next/server";
+import { handleErrorMsg } from "@/app/utils/common";
 
 export async function POST(req: NextRequest) {
   let result;
@@ -38,8 +39,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const response = {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
 

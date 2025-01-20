@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { executeQueryInUserDB, getUserDBConn } from "../utils/db";
 import mariadb from "mariadb";
@@ -33,10 +34,7 @@ export async function checkIfPhoneExistsFromDB(phone: string) {
     console.error("Error during phone validation: ", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Database error occurred during phone validation:",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -70,10 +68,7 @@ export async function checkIfMailExistsFromDB(email: string) {
     console.error("Error during email validation: ", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Database error occurred during email validation:",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -158,8 +153,7 @@ export async function saveOTPEntryInDB(
     console.error("Error during OTP entry save:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error saving OTP entries.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -248,7 +242,7 @@ export async function validateOTPFromDB(
     console.error("Error during OTP validation:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error validating OTP.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -314,7 +308,7 @@ export async function saveUserInDB(
     console.error("Error saving user:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error saving user.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -349,10 +343,7 @@ export async function validateSignInFromDB(username: string) {
     console.error("Error during user validation:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Database error occurred while validating user.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -383,7 +374,7 @@ export async function loadUserFromDB(id: number) {
     console.error("Error loading user:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading user.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -447,10 +438,7 @@ export async function updateUserBusinessMappingStatusInDB(
     console.error("Error updating user_business_mapping :", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error updating user_business_mapping.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {

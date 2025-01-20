@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -188,7 +189,7 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -328,7 +329,7 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -358,6 +359,7 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -397,36 +399,46 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
 
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
-              mb: 2,
+              border: "1px solid #ccc",
+              borderRadius: 2,
+              padding: 2,
               mt: 3,
+              mb: 3,
+              position: "relative",
             }}
           >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              License No.
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {licenseDet?.license_no || ""}
-            </Typography>
-          </Box>
+            <legend
+              style={{
+                fontSize: "0.95rem",
+                padding: "0 10px",
+                position: "absolute",
+                top: "-12px",
+                left: "10px",
+                backgroundColor: "#fff",
+                paddingRight: "10px",
+                color: theme.palette.secondary.dark,
+              }}
+            >
+              Current Variant Details
+            </legend>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
-            }}
-          >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              Current Variant
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {licenseStatus?.product_variant_name || ""}
-            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "120px 20px auto",
+                alignItems: "start",
+
+                mt: 1,
+              }}
+            >
+              <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                Current Variant
+              </Typography>
+              <Typography sx={{ textAlign: "left" }}>:</Typography>
+              <Typography sx={{ textAlign: "left" }}>
+                {licenseStatus?.product_variant_name || ""}
+              </Typography>
+            </Box>
           </Box>
 
           <form onSubmit={handleSubmit}>
@@ -450,10 +462,10 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
                   left: "10px",
                   backgroundColor: "#fff",
                   paddingRight: "10px",
-                  color: theme.palette.secondary.main,
+                  color: theme.palette.secondary.dark,
                 }}
               >
-                New Variant Details
+                Specify Extension Details
               </legend>
               <Autocomplete
                 fullWidth
@@ -549,7 +561,7 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

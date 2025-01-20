@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import React, { useEffect, useState } from "react";
 import {
@@ -69,6 +70,7 @@ const SignUp: React.FC = () => {
         });
         setErrors(validationErrors);
       }
+
       return null;
     }
   };
@@ -256,19 +258,13 @@ const SignUp: React.FC = () => {
       console.error("Error during form submission:", error);
       setSnackbar({
         open: true,
-        message:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
+        message: handleErrorMsg(error),
         severity: "error",
       });
 
       return {
         status: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
+        message: handleErrorMsg(error),
         data: null,
       };
     } finally {
@@ -496,7 +492,7 @@ const SignUp: React.FC = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

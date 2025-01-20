@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -105,7 +106,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       }
@@ -132,7 +133,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       }
@@ -181,7 +182,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -357,6 +358,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -385,6 +387,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
                 {executiveId ? "Edit Executive" : "Add Executive"}
               </Typography>
             </Box>
+
             <IconButton
               onClick={onClose}
               disabled={loading}
@@ -488,7 +491,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
                   left: "10px",
                   backgroundColor: "#fff",
                   paddingRight: "10px",
-                  color: theme.palette.secondary.main,
+                  color: theme.palette.secondary.dark,
                 }}
               >
                 Contact Details
@@ -609,7 +612,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

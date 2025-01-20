@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import {
   deleteExecutiveFromDB,
@@ -55,8 +56,7 @@ export async function deleteExecutive(executiveId: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -75,8 +75,7 @@ export async function canExecutiveBeDeleted(executiveId: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -105,8 +104,7 @@ export async function loadExecutive(executive_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -135,8 +133,7 @@ export async function loadExecutiveByMappedUser(mapped_user_id_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -192,8 +189,7 @@ export async function saveExecutive(executiveData: executiveSchemaT) {
     console.error("Error saving executive:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -295,8 +291,7 @@ export async function setExecutiveDataB4Saving(
     console.error("Error while setting executive data before saving :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -345,8 +340,7 @@ export async function canExecutiveBeSaved(
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -374,8 +368,7 @@ export async function loadExecutiveList() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

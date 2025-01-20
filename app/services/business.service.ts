@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { getHostAndPort4Business } from "../controllers/business.controller";
 import {
@@ -50,8 +51,7 @@ export async function loadBusinessListFromDB(userId: number) {
     console.error("Error loading business :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading business .",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -165,8 +165,7 @@ export async function saveBusinessInDB(data: businessSchemaT) {
     console.error("Error saving Business :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error saving Business .",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -202,8 +201,7 @@ export async function loadBusinessFromDB(id: number) {
     console.error("Error loading Business :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading Business .",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -239,10 +237,7 @@ export async function getUserRole4BusinessFromDB(
     console.error("Error loading user business mapping :", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading user business mapping .",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -285,10 +280,7 @@ export async function checkIfBusinessLoggedInFromDB() {
     console.error("Error loading user business mapping :", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading user business mapping .",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -367,9 +359,7 @@ export async function deleteBusinessFromDB(id: number) {
         console.log(`Database ${dbName} dropped successfully.`);
       } catch (error) {
         proceed = false;
-        (errMsg =
-          error instanceof Error ? error.message : "Unable to drop database."),
-          console.error("Error dropping database:", error);
+        errMsg = handleErrorMsg(error);
       } finally {
         if (dropDBCon) dropDBCon.end();
       }
@@ -391,8 +381,7 @@ export async function deleteBusinessFromDB(id: number) {
     console.error("Error deleting business :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error deleting business .",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -527,11 +516,8 @@ export async function deregisterFromBusinessInDB(business_id: number) {
         }
       } catch (error) {
         proceed = false;
-        (errMsg =
-          error instanceof Error
-            ? error.message
-            : "Unable to remove mapped user."),
-          console.error("Error removing mapped user:", error);
+        errMsg = handleErrorMsg(error);
+        console.error("Error removing mapped user:", error);
       } finally {
         if (businessDBConn) businessDBConn.end();
       }
@@ -553,10 +539,7 @@ export async function deregisterFromBusinessInDB(business_id: number) {
     console.error("Error deregistering user from business:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error deregistering user from business.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -598,10 +581,7 @@ export async function getHostAndPort4BusinessFromDB(id: number) {
     console.error("Error fetching business  details:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error fetching business  details.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -671,7 +651,7 @@ async function createBusinessDB(
           name VARCHAR(255) NOT NULL UNIQUE,
           mapped_user_id INT NULL,
           invite_id INT NULL UNIQUE,
-          contact_name VARCHAR(255) NOT NULL UNIQUE,
+          contact_name VARCHAR(255) NOT NULL,
           created_by INT NOT NULL,
           updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -743,7 +723,7 @@ async function createBusinessDB(
           department_id INT NOT NULL,
           role_id INT NOT NULL,
           invite_id INT NULL UNIQUE,
-          contact_name VARCHAR(255) NOT NULL UNIQUE,
+          contact_name VARCHAR(255) NOT NULL,
           created_by INT NOT NULL,
           updated_by INT NOT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1008,8 +988,7 @@ async function createBusinessDB(
     console.error("Error creating or selecting database:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {

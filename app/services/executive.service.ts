@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import {
   getCurrentBusinessDet,
@@ -122,8 +123,7 @@ export async function loadExecutiveListFromDB() {
     console.error("Error loading executives:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading executives.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -270,8 +270,7 @@ export async function saveExecutiveInDB(
     console.error("Error saving executive:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error saving executive.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -348,8 +347,7 @@ export async function loadExecutiveFromDB(id: number) {
     console.error("Error loading executive:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading executive.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -384,8 +382,7 @@ export async function loadExecutiveByMappedUserFromDB(id: number) {
     console.error("Error loading executive:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading executive.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -485,8 +482,7 @@ export async function deleteExecutiveFromDB(executiveId: number) {
     console.error("Error deleting executive:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error deleting executive.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {

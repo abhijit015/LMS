@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import {
   addonPlansSchema,
@@ -32,6 +33,7 @@ import {
   getUnitPriceAndEarlyDiscount4VariantFromDB,
   getDiscount4ExtendingUsersFromDB,
   getDiscountAndGrace4ExtendingValidityFromDB,
+  loadCurrentAddonPlansFromDB,
 } from "../services/pricing.service";
 import {
   getPendingMonthsFromExpiry,
@@ -84,8 +86,7 @@ export async function setAddonPlansDataB4Saving(
     console.error("Error while setting addon_plans data before saving:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -131,8 +132,7 @@ export async function setVariantPricingDataB4Saving(
     );
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -180,8 +180,7 @@ export async function setUserDiscountSlabsDataB4Saving(
     );
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -229,8 +228,7 @@ export async function setValidityDiscountSlabsDataB4Saving(
     );
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -295,8 +293,7 @@ export async function saveAddonPlans(
     console.error("Error saving addon_plans:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -357,8 +354,7 @@ export async function saveVariantPricing(
     console.error("Error saving variant_pricing:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -419,8 +415,7 @@ export async function saveUserDiscountSlabs(
     console.error("Error saving user_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -481,8 +476,7 @@ export async function saveValidityDiscountSlabs(
     console.error("Error saving validity_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -533,8 +527,7 @@ export async function canAddonPlansBeSaved(
     console.error("Error validating addon_plans:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -584,8 +577,7 @@ export async function canVariantPricingBeSaved(
     console.error("Error validating variant_pricing:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -684,8 +676,7 @@ export async function canUserDiscountSlabsBeSaved(
     console.error("Error validating user_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -791,8 +782,7 @@ export async function canValidityDiscountSlabsBeSaved(
     console.error("Error validating validity_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -829,8 +819,44 @@ export async function loadActiveAddonPlans(
     console.error("Error loading addon_plans:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
+export async function loadCurrentAddonPlans(
+  addon_id: number,
+  product_id: number,
+  product_variant_id: number
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadCurrentAddonPlansFromDB(
+        addon_id,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Addon plans loaded successfully." : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    console.error("Error loading addon_plans:", error);
+    return {
+      status: false,
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -865,8 +891,7 @@ export async function loadActiveVariantPricing(
     console.error("Error loading variant_pricing:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -901,8 +926,7 @@ export async function loadActiveUserDiscountSlabs(
     console.error("Error loading user_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -939,8 +963,7 @@ export async function loadActiveValidityDiscountSlabs(
     console.error("Error loading validity_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -977,8 +1000,7 @@ export async function loadPrevAddonPlans(
     console.error("Error loading addon_plans:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1013,8 +1035,7 @@ export async function loadPrevVariantPricing(
     console.error("Error loading variant_pricing:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1049,8 +1070,7 @@ export async function loadPrevUserDiscountSlabs(
     console.error("Error loading user_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1087,44 +1107,11 @@ export async function loadPrevValidityDiscountSlabs(
     console.error("Error loading validity_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
 }
-
-// export async function getCreditsReqd4ExtendingVariant(
-//   product_variant_id: number
-// ) {
-//   let proceed: boolean = true;
-//   let errMsg: string = "";
-//   let result;
-
-//   try {
-//     if (proceed) {
-//       result = await getCreditsReqd4ExtendingVariantFromDB(product_variant_id);
-//       if (!result.status) {
-//         proceed = false;
-//         errMsg = result.message;
-//       }
-//     }
-
-//     return {
-//       status: proceed,
-//       message: proceed ? "Success" : errMsg,
-//       data: proceed ? result?.data : null,
-//     };
-//   } catch (error) {
-//     console.error("Error in getCreditsReqd4ExtendingVariant :", error);
-//     return {
-//       status: false,
-//       message:
-//         error instanceof Error ? error.message : "Unknown error occurred.",
-//       data: null,
-//     };
-//   }
-// }
 
 export async function getCurrentLicensePrice(licenseId: number) {
   let proceed: boolean = true;
@@ -1178,10 +1165,7 @@ export async function getCurrentLicensePrice(licenseId: number) {
     console.error("Error in getCurrentLicensePrice : ", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error in getCurrentLicensePrice",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1347,10 +1331,7 @@ export async function getCreditsReqd4ExtendingLicenseParam(
     );
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error in getCreditsReqd4ExtendingLicenseParamFromDB",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

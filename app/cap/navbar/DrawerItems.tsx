@@ -7,14 +7,11 @@ import {
   ListItemText,
   Collapse,
   Divider,
-  ListItem,
   ListItemIcon,
 } from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import Link from "next/link";
 import { userSchemaT } from "@/app/utils/models";
-import InboxIcon from "@mui/icons-material/MoveToInbox";
-import MailIcon from "@mui/icons-material/Mail";
 import CategoryIcon from "@mui/icons-material/Category";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";

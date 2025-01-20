@@ -80,6 +80,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           borderRadius: 2,
           outline: "none",
           textAlign: "center",
+          border: "1px solid",
         }}
       >
         <Box
@@ -101,13 +102,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           >
             {title}
           </Typography>
-          <IconButton
-            onClick={onClose}
-            tabIndex={-1}
-            sx={{
-              color: "text.primary",
-            }}
-          >
+          <IconButton onClick={onClose} tabIndex={-1}>
             <CloseIcon />
           </IconButton>
         </Box>
@@ -117,7 +112,6 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           variant="body1"
           sx={{
             mb: 4,
-            color: "text.secondary",
             textAlign: "center",
             padding: "3px",
           }}

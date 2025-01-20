@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { departmentSchema } from "../utils/zodschema";
 import { departmentSchemaT } from "../utils/models";
@@ -73,8 +74,7 @@ export async function setDepartmentDataB4Saving(
     console.error("Error while setting department data before saving :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -119,8 +119,7 @@ export async function saveDepartment(departmentData: departmentSchemaT) {
     console.error("Error saving department:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -157,8 +156,7 @@ export async function canDepartmentBeSaved(departmentData: departmentSchemaT) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -193,8 +191,7 @@ export async function deleteDepartment(departmentID: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -213,8 +210,7 @@ export async function canDepartmentBeDeleted(departmentID: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -243,8 +239,7 @@ export async function loadDepartment(department_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -273,8 +268,7 @@ export async function loadDepartmentList() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

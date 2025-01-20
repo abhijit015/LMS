@@ -1,10 +1,12 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import {
   saveInviteInDB,
   loadInviteFromDB,
   loadInvite4CurrentBusinessFromDB,
   loadInvite4CurrentUserFromDB,
+  runDBValidationsB4SavingInvite,
 } from "../services/invite.service";
 import {
   INVITE_STATUS_ACCEPTED,
@@ -92,8 +94,7 @@ export async function setInviteDataB4Saving(inviteData: inviteSchemaT) {
     console.error("Error while setting invite data before saving :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -142,8 +143,7 @@ export async function saveInvite(inviteData: inviteSchemaT) {
     console.error("Error saving invite:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -152,6 +152,7 @@ export async function saveInvite(inviteData: inviteSchemaT) {
 export async function canInviteBeSaved(inviteData: inviteSchemaT) {
   let errMsg: string = "";
   let proceed: boolean = true;
+  let result;
 
   try {
     if (proceed) {
@@ -162,6 +163,11 @@ export async function canInviteBeSaved(inviteData: inviteSchemaT) {
     }
 
     if (proceed) {
+      result = await runDBValidationsB4SavingInvite(inviteData);
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
     }
 
     return {
@@ -172,8 +178,7 @@ export async function canInviteBeSaved(inviteData: inviteSchemaT) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -183,7 +188,6 @@ export async function loadInvite(invite_id: number) {
   let errMsg: string = "";
   let proceed: boolean = true;
   let result;
-  let userId;
 
   try {
     if (proceed) {
@@ -202,8 +206,7 @@ export async function loadInvite(invite_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -232,8 +235,7 @@ export async function loadInvite4CurrentBusiness() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -262,8 +264,7 @@ export async function loadInvite4CurrentUser() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

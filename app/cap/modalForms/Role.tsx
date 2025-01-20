@@ -199,6 +199,7 @@ const RoleModal: React.FC<RoleModalProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -227,6 +228,7 @@ const RoleModal: React.FC<RoleModalProps> = ({
                 {roleId ? "Edit Role" : "Add Role"}
               </Typography>
             </Box>
+
             <IconButton
               onClick={onClose}
               disabled={loading}
@@ -290,7 +292,7 @@ const RoleModal: React.FC<RoleModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

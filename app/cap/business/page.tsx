@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -46,6 +47,7 @@ import {
   saveInvite,
 } from "@/app/controllers/invite.controller";
 import AddIcon from "@mui/icons-material/Add";
+import CategoryIcon from "@mui/icons-material/Category";
 
 interface businessRowData {
   id: number;
@@ -349,7 +351,7 @@ const Business = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -435,7 +437,7 @@ const Business = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -520,7 +522,7 @@ const Business = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -556,7 +558,7 @@ const Business = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -606,17 +608,32 @@ const Business = () => {
               mb: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Linked Businesses
             </Typography>
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
-                variant="outlined"
+                variant="contained"
                 onClick={handleAddBusiness}
                 disabled={loading}
                 size="small"
                 startIcon={<AddIcon />}
+                sx={{
+                  backgroundColor: "primary.light",
+                  "&:hover": {
+                    backgroundColor: "primary.main",
+                  },
+                }}
               >
                 Add Business
               </Button>
@@ -676,7 +693,16 @@ const Business = () => {
       >
         <CardContent>
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Invitations
             </Typography>
             <Box sx={{ display: "flex", gap: 2 }}>
@@ -748,7 +774,7 @@ const Business = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

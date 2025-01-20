@@ -432,3 +432,45 @@ export function getPendingMonthsFromExpiry(
 
   return Math.max(totalMonths, 0);
 }
+
+export function handleErrorMsg(error: unknown): string {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "errno" in error &&
+    "message" in error
+  ) {
+    const sqlError = error as {
+      errno?: number;
+      message?: string;
+      sqlMessage?: string;
+    };
+
+    switch (sqlError.errno) {
+      case 1451:
+        return "Cannot delete this entity as it is referenced in other records.";
+      // case 1062:
+      //   return "A record with the same value already exists.";
+      // case 1048:
+      //   return "A required field is missing.";
+      // case 1054:
+      //   return "An unknown column was specified in the query.";
+      // case 1146:
+      //   return "The specified table does not exist in the database.";
+      // case 1364:
+      //   return "A required field does not have a default value.";
+      default:
+        return `Database error: ${
+          sqlError.sqlMessage || sqlError.message || "Unknown error"
+        }`;
+    }
+  }
+
+  // Handle standard Error instances
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  // Handle any other type of error
+  return String(error);
+}

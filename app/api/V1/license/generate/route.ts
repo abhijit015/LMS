@@ -1,4 +1,5 @@
 import { generateLicense } from "@/app/controllers/license.controller";
+import { handleErrorMsg } from "@/app/utils/common";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -35,8 +36,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const response = {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -14,10 +15,9 @@ import {
 import ConfirmationModal from "./AskYesNo";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
-  loadAddonStatus4License,
+  loadAllAddonStatus4License,
   loadLicenseDet,
   loadLicenseStatus,
 } from "@/app/controllers/license.controller";
@@ -60,6 +60,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [addonStatus, setAddonStatus] = useState<AddonStatusList[]>([]);
+  const [addonId, setAddonId] = useState<number>(0);
   const [licenseDet, setLicenseDet] = useState<licenseDetSchemaT>();
   const [licenseStatus, setLicenseStatus] = useState<licenseStatusSchemaT>();
   const [variantData, setVariantData] = useState<productVariantsSchemaT>();
@@ -93,7 +94,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
 
     try {
       if (proceed) {
-        result = await loadAddonStatus4License(licenseId);
+        result = await loadAllAddonStatus4License(licenseId);
 
         if (!result.status) {
           proceed = false;
@@ -148,7 +149,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -309,7 +310,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
                   fontWeight: "bold",
                   "&:hover": { color: "error.main" },
                 }}
-                onClick={() => handleExtendAddon(params.row.id)}
+                onClick={() => handleExtendAddon(params.row.addon_id)}
               >
                 Extend
               </Typography>
@@ -334,7 +335,8 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
     modalMap[license_param_id]?.(true);
   };
 
-  const handleExtendAddon = (license_param_id: number) => {
+  const handleExtendAddon = (addon_id: number) => {
+    setAddonId(addon_id);
     setIsExtendAddonModalOpen(true);
   };
 
@@ -360,6 +362,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
             borderRadius: 2,
             outline: "none",
             // textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -371,7 +374,6 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <VisibilityIcon sx={{ color: "primary.main" }} />
               <Typography
                 variant="h6"
                 component="h2"
@@ -447,7 +449,10 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
           </Box>
 
           <Box sx={{ height: "auto", mb: 4 }}>
-            <Typography variant="h6" sx={{ color: "primary.main", mb: 1 }}>
+            <Typography
+              variant="subtitle1"
+              sx={{ color: "primary.main", mb: 1 }}
+            >
               License Parameters
             </Typography>
             <DataGrid
@@ -478,15 +483,22 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
                 mb: 1,
               }}
             >
-              <Typography variant="h6" sx={{ color: "primary.main" }}>
+              <Typography variant="subtitle1" sx={{ color: "primary.main" }}>
                 Add-ons
               </Typography>
+
               <Button
-                variant="outlined"
-                // onClick={handleAddProduct}
+                variant="contained"
+                onClick={() => handleExtendAddon(0)}
                 disabled={loading}
                 size="small"
                 startIcon={<AddIcon />}
+                sx={{
+                  backgroundColor: "primary.main",
+                  "&:hover": {
+                    backgroundColor: "primary.dark",
+                  },
+                }}
               >
                 Add Add-on
               </Button>
@@ -531,7 +543,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>
@@ -568,6 +580,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
       <ExtendAddon
         open={isExtendAddonModalOpen}
         licenseId={licenseId}
+        addonId={addonId}
         onClose={() => setIsExtendAddonModalOpen(false)}
         onSave={() => fetchLicenseData()}
       />

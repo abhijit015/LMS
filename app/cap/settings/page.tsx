@@ -1,5 +1,6 @@
 "use client";
 
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useState, useRef, useEffect } from "react";
 import Layout from "../layout";
 import ConfirmationModal from "../modalForms/AskYesNo";
@@ -9,11 +10,10 @@ import {
   Button,
   Alert,
   Snackbar,
-  TextField,
   Typography,
   Box,
-  IconButton,
 } from "@mui/material";
+import CategoryIcon from "@mui/icons-material/Category";
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,7 @@ const Settings = () => {
         } catch (error) {
           setSnackbar({
             open: true,
-            message: String(error),
+            message: handleErrorMsg(error),
             severity: "error",
           });
         } finally {
@@ -97,7 +97,16 @@ const Settings = () => {
         }}
       >
         <CardContent>
-          <Typography variant="h6" color="primary" gutterBottom>
+          <Typography
+            variant="h6"
+            sx={{
+              color: "primary.main",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <CategoryIcon />
             Settings
           </Typography>
 
@@ -130,7 +139,7 @@ const Settings = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

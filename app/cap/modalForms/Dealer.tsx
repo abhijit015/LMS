@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -149,7 +150,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -297,6 +298,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -308,23 +310,25 @@ const DealerModal: React.FC<DealerModalProps> = ({
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {dealerId ? (
-                <EditIcon sx={{ color: "primary.main" }} />
-              ) : (
-                <AddIcon sx={{ color: "primary.main" }} />
-              )}
-              <Typography
-                variant="h6"
-                component="h2"
-                sx={{
-                  color: "primary.main",
-                  textAlign: "left",
-                  fontWeight: "normal",
-                }}
-              >
-                {dealerId ? "Edit Dealer" : "Add Dealer"}
-              </Typography>
-            </Box>
+  {dealerId ? (
+    <EditIcon sx={{ color: "primary.main" }} />
+  ) : (
+    <AddIcon sx={{ color: "primary.main" }} />
+  )}
+  <Typography
+    variant="h6"
+    component="h2"
+    sx={{
+      color: "primary.main",
+      textAlign: "left",
+      fontWeight: "normal",
+    }}
+  >
+    {dealerId ? "Edit Dealer" : "Add Dealer"}
+  </Typography>
+</Box>
+
+
             <IconButton
               onClick={onClose}
               disabled={loading}
@@ -411,7 +415,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
                   left: "10px",
                   backgroundColor: "#fff",
                   paddingRight: "10px",
-                  color: theme.palette.secondary.main,
+                  color: theme.palette.secondary.dark,
                 }}
               >
                 Contact Details
@@ -532,7 +536,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

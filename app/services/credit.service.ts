@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { Connection } from "mariadb";
 import {
@@ -39,7 +40,7 @@ export async function loadAssignCreditTranFromDB(id: number) {
     console.error("Error loading tran:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading tran.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -80,7 +81,7 @@ export async function loadAssignCreditListFromDB() {
     console.error("Error loading list:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading list.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -135,10 +136,7 @@ export async function deleteAssignCreditTranFromDB(
     console.error("Error deleting dealer_credit_tran:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error deleting dealer_credit_tran.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -275,10 +273,7 @@ export async function saveDealerCreditTranInDB(
     console.error("Error saving dealer credit transaction:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error saving dealer credit transaction.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {

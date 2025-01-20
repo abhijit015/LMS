@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useState, useRef } from "react";
 import {
   Box,
@@ -129,7 +130,7 @@ const AssignDealer: React.FC<AssignDealerProps> = ({
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -256,6 +257,7 @@ const AssignDealer: React.FC<AssignDealerProps> = ({
             borderRadius: 2,
             outline: "none",
             textAlign: "center",
+            border: "1px solid",
           }}
         >
           <Box
@@ -300,22 +302,6 @@ const AssignDealer: React.FC<AssignDealerProps> = ({
               alignItems: "start",
               mb: 2,
               mt: 3,
-            }}
-          >
-            <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-              License No.
-            </Typography>
-            <Typography sx={{ textAlign: "left" }}>:</Typography>
-            <Typography sx={{ textAlign: "left" }}>
-              {licenseDet?.license_no || ""}
-            </Typography>
-          </Box>
-
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "120px 20px auto",
-              alignItems: "start",
             }}
           >
             <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
@@ -380,12 +366,15 @@ const AssignDealer: React.FC<AssignDealerProps> = ({
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        anchorOrigin={{
+          vertical: "top",
+          horizontal: "center",
+        }}
       >
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

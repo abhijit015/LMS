@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -133,7 +134,7 @@ export default function Layout({ children, loading }: LayoutProps) {
       } catch (error) {
         setSnackbar({
           open: true,
-          message: String(error),
+          message: handleErrorMsg(error),
           severity: "error",
         });
       } finally {
@@ -185,7 +186,7 @@ export default function Layout({ children, loading }: LayoutProps) {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

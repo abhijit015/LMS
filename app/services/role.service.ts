@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { roleSchemaT } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
@@ -32,7 +33,7 @@ export async function loadRoleFromDB(id: number) {
     console.error("Error loading role:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading role.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -65,7 +66,7 @@ export async function loadRoleListFromDB() {
     console.error("Error loading roles:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading roles.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -128,7 +129,7 @@ export async function saveRoleInDB(roleData: roleSchemaT) {
     console.error("Error saving role:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error saving role.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {

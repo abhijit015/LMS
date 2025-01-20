@@ -1,14 +1,71 @@
 "use server";
 
+import { handleErrorMsg } from "../utils/common";
 import {
   addonPlansSchemaT,
-  licenseStatusSchemaT,
   userDiscountSlabSchemaT,
   validityDiscountSlabSchemaT,
   variantPricingSchemaT,
 } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
-import { initLicenseStatusData } from "../utils/common";
+
+export async function loadCurrentAddonPlansFromDB(
+  addon_id: number,
+  product_id: number,
+  product_variant_id: number
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+
+  let result;
+  let query: string;
+
+  try {
+    if (proceed) {
+      query = `
+            SELECT *
+      FROM addon_plan ap
+      WHERE ap.addon_id = ?
+        AND ap.product_id = ?
+        AND ap.product_variant_id = ?
+        AND ap.effective_from = (
+            SELECT MAX(effective_from)
+            FROM addon_plan
+            WHERE addon_id = ?
+              AND product_id = ?
+              AND product_variant_id = ?
+              AND effective_from <= CURDATE()
+        );
+    `;
+      result = await executeQueryInBusinessDB(query, [
+        addon_id,
+        product_id,
+        product_variant_id,
+        addon_id,
+        product_id,
+        product_variant_id,
+      ]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error loading addon_plans.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "addon_plans loaded successfully." : errMsg,
+      data: proceed ? result : null,
+    };
+  } catch (error) {
+    console.error("Error loading addon_plans:", error);
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
 
 export async function loadActiveAddonPlansFromDB(
   addon_id: number,
@@ -78,8 +135,7 @@ export async function loadActiveAddonPlansFromDB(
     console.error("Error loading addon_plans:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading addon_plans.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -146,10 +202,7 @@ export async function loadActiveUserDiscountSlabsFromDB(
     console.error("Error loading user_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading user_discount_slabs.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -218,10 +271,7 @@ export async function loadActiveValidityDiscountSlabsFromDB(
     console.error("Error loading validity_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading validity_discount_slabs.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -288,10 +338,7 @@ export async function loadActiveVariantPricingFromDB(
     console.error("Error loading variant_pricing:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading variant_pricing.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -349,8 +396,7 @@ export async function loadPrevAddonPlansFromDB(
     console.error("Error loading addon plans:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading addon plans.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -403,10 +449,7 @@ export async function loadPrevUserDiscountSlabsFromDB(
     console.error("Error loading user discount slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading user discount slabs.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -461,10 +504,7 @@ export async function loadPrevValidityDiscountSlabsFromDB(
     console.error("Error loading validity discount slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading validity discount slabs.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -517,10 +557,7 @@ export async function loadPrevVariantPricingFromDB(
     console.error("Error loading variant pricing:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error loading variant pricing.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -647,10 +684,7 @@ export async function saveVariantPricingInDB(
     console.error("Error saving variant_pricing:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error saving variant_pricing.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -783,10 +817,7 @@ export async function saveUserDiscountSlabsInDB(
     console.error("Error saving user_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error saving user_discount_slabs.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -923,10 +954,7 @@ export async function saveValidityDiscountSlabsInDB(
     console.error("Error saving validity_discount_slabs:", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error saving validity_discount_slabs.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -1058,69 +1086,13 @@ export async function saveAddonPlansInDB(
     console.error("Error saving addon_plans:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error saving addon_plans.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
     if (connection) connection.end();
   }
 }
-
-// export async function getCreditsReqd4ExtendingVariantFromDB(
-//   product_variant_id: number
-// ) {
-//   let proceed: boolean = true;
-//   let errMsg: string = "";
-//   let result;
-//   let price;
-//   let requiredCredits;
-
-//   try {
-//     if (proceed) {
-//       const query = `
-//         SELECT vp.price
-//         FROM variant_pricing vp
-//         WHERE vp.product_variant_id = ?
-//         AND vp.effective_from <= CURDATE()
-//         ORDER BY vp.effective_from ASC
-//         LIMIT 1;
-//       `;
-
-//       result = await executeQueryInBusinessDB(query, [product_variant_id]);
-
-//       if (result.length > 0) {
-//         price = result[0].price;
-//       } else if (result.length === 0) {
-//         // proceed = false;
-//         // errMsg = "No prices configured for this variant.";
-//       } else {
-//         proceed = false;
-//         errMsg = "Error in getCreditsReqd4ExtendingVariantFromDB.";
-//       }
-//     }
-
-//     if (proceed) {
-//       requiredCredits = price;
-//     }
-
-//     return {
-//       status: proceed,
-//       message: proceed ? "Success" : errMsg,
-//       data: proceed ? requiredCredits : null,
-//     };
-//   } catch (error) {
-//     console.error("Error in getCreditsReqd4ExtendingVariantFromDB : ", error);
-//     return {
-//       status: false,
-//       message:
-//         error instanceof Error
-//           ? error.message
-//           : "Error in getCreditsReqd4ExtendingVariantFromDB",
-//       data: null,
-//     };
-//   }
-// }
 
 export async function getUnitPriceAndEarlyDiscount4VariantFromDB(
   product_variant_id: number
@@ -1169,10 +1141,7 @@ export async function getUnitPriceAndEarlyDiscount4VariantFromDB(
     );
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error in getUnitPriceAndEarlyDiscount4VariantFromDB",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1209,7 +1178,6 @@ export async function getDiscount4ExtendingUsersFromDB(
 
       if (result.length > 0) {
         discount = result[0].price;
-      
       } else if (result.length === 0) {
       } else {
         proceed = false;
@@ -1226,10 +1194,7 @@ export async function getDiscount4ExtendingUsersFromDB(
     console.error("Error in getDiscount4ExtendingUsersFromDB : ", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error in getDiscount4ExtendingUsersFromDB",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -1287,10 +1252,7 @@ export async function getDiscountAndGrace4ExtendingValidityFromDB(
     );
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error in getDiscountAndGrace4ExtendingValidityFromDB",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
@@ -41,6 +42,7 @@ import {
   INVITE_STATUS_REJECTED,
 } from "@/app/utils/constants";
 import { inviteSchemaT, userSchemaT } from "@/app/utils/models";
+import CategoryIcon from "@mui/icons-material/Category";
 
 interface InviteList {
   id: number;
@@ -253,7 +255,7 @@ const Users = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -310,7 +312,7 @@ const Users = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -362,7 +364,16 @@ const Users = () => {
               mb: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Invite Management
             </Typography>
 
@@ -419,7 +430,7 @@ const Users = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

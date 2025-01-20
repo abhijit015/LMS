@@ -1,5 +1,6 @@
 import { productSchemaT, productVariantsSchemaT } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
+import { handleErrorMsg } from "../utils/common";
 
 export async function loadProductFromDB(id: number) {
   let proceed: boolean = true;
@@ -47,8 +48,7 @@ export async function loadProductFromDB(id: number) {
     console.error("Error loading product:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading product.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -83,8 +83,7 @@ export async function loadVariantFromDB(id: number) {
     console.error("Error loading Variant:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading Variant.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -136,8 +135,7 @@ export async function loadProductListFromDB() {
     console.error("Error loading products:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading products.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -193,8 +191,7 @@ export async function deleteProductFromDB(productId: number) {
     console.error("Error deleting product:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error deleting product.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -350,7 +347,7 @@ export async function saveProductInDB(productData: productSchemaT) {
     console.error("Error saving product:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error saving product.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {

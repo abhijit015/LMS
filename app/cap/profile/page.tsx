@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import React, { useState, useRef, useEffect } from "react";
 import Layout from "../layout";
@@ -18,6 +19,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import { getCurrentUserDet, saveUser } from "@/app/controllers/user.controller";
 import { userSchemaT } from "@/app/utils/models";
 import { userSchema } from "@/app/utils/zodschema";
+import CategoryIcon from "@mui/icons-material/Category";
 
 const Profile = () => {
   const [userData, setUserData] = useState<userSchemaT | null>(null);
@@ -72,7 +74,7 @@ const Profile = () => {
         } catch (error) {
           setSnackbar({
             open: true,
-            message: String(error),
+            message: handleErrorMsg(error),
             severity: "error",
           });
         } finally {
@@ -195,7 +197,16 @@ const Profile = () => {
         }}
       >
         <CardContent>
-          <Typography variant="h6" color="primary" gutterBottom>
+          <Typography
+            variant="h6"
+            sx={{
+              color: "primary.main",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+            }}
+          >
+            <CategoryIcon />
             My Profile
           </Typography>
 
@@ -276,7 +287,7 @@ const Profile = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

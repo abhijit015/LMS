@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { roleSchema } from "../utils/zodschema";
 import { roleSchemaT } from "../utils/models";
@@ -39,8 +40,7 @@ export async function setRoleDataB4Saving(roleData: roleSchemaT) {
     console.error("Error while setting role data before saving :", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -85,8 +85,7 @@ export async function saveRole(roleData: roleSchemaT) {
     console.error("Error saving role:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -123,8 +122,7 @@ export async function canRoleBeSaved(roleData: roleSchemaT) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -153,8 +151,7 @@ export async function loadRole(role_id: number) {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -183,8 +180,7 @@ export async function loadRoleList() {
   } catch (error) {
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Unknown error occurred.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

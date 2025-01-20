@@ -1,33 +1,24 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
-  Button,
-  IconButton,
   TextField,
   InputAdornment,
   Card,
   CardContent,
-  Menu,
-  MenuItem,
   Alert,
   Snackbar,
   Typography,
   Link,
 } from "@mui/material";
-import {
-  DataGrid,
-  GridColDef,
-  GridFilterModel,
-  GridRenderCellParams,
-} from "@mui/x-data-grid";
-import { MoreVert as MoreVertIcon } from "@mui/icons-material";
+import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import Layout from "../layout";
 import ConfirmationModal from "../modalForms/AskYesNo";
 import LicenseModal from "../modalForms/License";
 import { loadLicenseList4Dealer } from "@/app/controllers/license.controller";
-import AddIcon from "@mui/icons-material/Add";
+import CategoryIcon from "@mui/icons-material/Category";
 
 interface LicenseList {
   id: number;
@@ -124,7 +115,7 @@ const Licenses = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -185,7 +176,16 @@ const Licenses = () => {
               mb: 1,
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Linked Licenses
             </Typography>
 
@@ -255,7 +255,7 @@ const Licenses = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

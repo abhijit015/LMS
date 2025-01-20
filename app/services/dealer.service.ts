@@ -1,4 +1,5 @@
 "use server";
+import { handleErrorMsg } from "../utils/common";
 
 import { getCurrentBusinessDet } from "../controllers/business.controller";
 import { loadDealer } from "../controllers/dealer.controller";
@@ -89,8 +90,7 @@ export async function loadDealerListFromDB() {
     console.error("Error loading dealers:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error loading dealers.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -326,7 +326,7 @@ export async function saveDealerInDB(
     console.error("Error saving dealer:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error saving dealer.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -419,7 +419,7 @@ export async function loadDealerFromDB(id: number) {
     console.error("Error loading dealer:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading dealer.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -509,7 +509,7 @@ export async function loadDealerByMappedUserFromDB(id: number) {
     console.error("Error loading dealer:", error);
     return {
       status: false,
-      message: error instanceof Error ? error.message : "Error loading dealer.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }
@@ -648,8 +648,7 @@ export async function deleteDealerFromDB(dealerId: number) {
     console.error("Error deleting dealer:", error);
     return {
       status: false,
-      message:
-        error instanceof Error ? error.message : "Error deleting executive.",
+      message: handleErrorMsg(error),
       data: null,
     };
   } finally {
@@ -687,10 +686,7 @@ export async function getDealerCreditBalanceFromDB(dealer_id: number) {
     console.error("Error fetching totals credits assigned to dealer.", error);
     return {
       status: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Error fetching totals credits assigned to dealer.",
+      message: handleErrorMsg(error),
       data: null,
     };
   }

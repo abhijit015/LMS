@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import React, { useState } from "react";
 import {
@@ -85,8 +86,7 @@ const SignIn: React.FC = () => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message:
-          error instanceof Error ? error.message : "Error while signing in.",
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -247,7 +247,7 @@ const SignIn: React.FC = () => {
         <Alert
           onClose={handleSnackbarClose}
           severity={snackbar.severity}
-          sx={{ width: "100%" }}
+          sx={{ width: "100%", border: "1px solid", borderRadius: 1 }}
         >
           {snackbar.message}
         </Alert>

@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import dynamic from "next/dynamic";
 import {
@@ -142,23 +143,24 @@ const AppBarComponent: React.FC<{
               }}
             >
               <img
-                src="https://media.licdn.com/dms/image/v2/D4D0BAQGFtmPASqsUdw/company-logo_200_200/company-logo_200_200/0/1719309870864?e=1741219200&v=beta&t=9rykagSCqVKY6FPfrBDz3g0eKD-Ax8pf3qOnyAnoxvI"
+                // src="https://media.licdn.com/dms/image/v2/D4D0BAQGFtmPASqsUdw/company-logo_200_200/company-logo_200_200/0/1719309870864?e=1741219200&v=beta&t=9rykagSCqVKY6FPfrBDz3g0eKD-Ax8pf3qOnyAnoxvI"
+                src="/images/license-manager-logo.svg"
                 alt="Algofast India Pvt. Ltd."
                 style={{
-                  height: "40px",
+                  height: "45px",
                   width: "auto",
-                  marginRight: "8px",
+                  // marginRight: "8px",
                 }}
               />
-              <Typography
+              {/* <Typography
                 variant="h6"
                 sx={{
-                  color: "primary.main",
+                  color: "secondary.dark",
                   fontWeight: 500,
                 }}
               >
                 License Management System
-              </Typography>
+              </Typography> */}
             </Link>
           </Box>
           <Box>
@@ -166,7 +168,7 @@ const AppBarComponent: React.FC<{
               <Typography
                 variant="h6"
                 sx={{
-                  // color: "primary.main",
+                  color: "primary.dark",
                   flex: 1,
                   textAlign: "center",
                 }}
@@ -183,7 +185,7 @@ const AppBarComponent: React.FC<{
                 >
                   <Typography
                     sx={{
-                      color: "primary.main",
+                      color: "success.main",
                       // bgcolor: "primary.lighter",
                       px: 2,
                       py: 0.5,
@@ -192,7 +194,7 @@ const AppBarComponent: React.FC<{
                       cursor: "pointer",
                       transition: "all 0.2s ease-in-out",
                       "&:hover": {
-                        color: "error.main",
+                        color: "success.dark",
                         transform: "scale(1.02)",
                       },
                     }}
@@ -259,7 +261,7 @@ const AppBarComponent: React.FC<{
                   <>
                     {currentUserRole === ROLE_BUSINESS_ADMIN && (
                       <MenuItem onClick={handleModifyBusiness}>
-                        Modify Business Details
+                        Modify Business
                       </MenuItem>
                     )}
                     <MenuItem onClick={handleSwitchBusiness}>

@@ -1,4 +1,5 @@
 "use client";
+import { handleErrorMsg } from "@/app/utils/common";
 
 import {
   Card,
@@ -79,6 +80,7 @@ import {
   saveValidityDiscountSlabs,
   saveVariantPricing,
 } from "@/app/controllers/pricing.controller";
+import CategoryIcon from "@mui/icons-material/Category";
 
 declare module "@mui/x-data-grid" {
   interface ToolbarPropsOverrides {
@@ -180,7 +182,7 @@ const Pricing = (): JSX.Element => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -361,7 +363,7 @@ const Pricing = (): JSX.Element => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -560,7 +562,7 @@ const Pricing = (): JSX.Element => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -1219,7 +1221,7 @@ const Pricing = (): JSX.Element => {
     } catch (error) {
       setSnackbar({
         open: true,
-        message: String(error),
+        message: handleErrorMsg(error),
         severity: "error",
       });
     } finally {
@@ -1248,7 +1250,16 @@ const Pricing = (): JSX.Element => {
               alignItems: "center",
             }}
           >
-            <Typography variant="h6" sx={{ color: "primary.main" }}>
+            <Typography
+              variant="h6"
+              sx={{
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <CategoryIcon />
               Plans & Pricing
             </Typography>
           </Box>
