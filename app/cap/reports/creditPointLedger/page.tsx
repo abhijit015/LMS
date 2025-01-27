@@ -1,7 +1,7 @@
 "use client";
 
 import { handleErrorMsg } from "@/app/utils/common";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   TextField,
@@ -11,13 +11,15 @@ import {
   Snackbar,
   Typography,
   Button,
+  Autocomplete,
 } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import Layout from "../../layout";
 import CategoryIcon from "@mui/icons-material/Category";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { loadLicenseHistory } from "@/app/controllers/license.controller";
-import { useSearchParams } from "next/navigation";
+import { loadDealerList } from "@/app/controllers/dealer.controller";
+import { dealerSchemaT } from "@/app/utils/models";
 
 interface ReportData {
   id: number;
@@ -27,8 +29,6 @@ interface ReportData {
 
 const LicenseHistoryReport = () => {
   const [loading, setLoading] = useState(false);
-  const searchParams = useSearchParams();
-  const licenseNoFromUrl = searchParams.get("licenseNo") || "";
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -36,23 +36,65 @@ const LicenseHistoryReport = () => {
   }>({ open: false, message: "", severity: "info" });
   const [reportData, setReportData] = useState<ReportData[]>([]);
   const [filters, setFilters] = useState({
-    licenseNo: licenseNoFromUrl,
+    startDate: new Date(),
+    endDate: new Date(),
+    dealer_id: null as number | null | undefined,
   });
+  const [dealers, setDealers] = useState<dealerSchemaT[]>([]);
+
+  const hasLoadedData = useRef(false);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (licenseNoFromUrl) {
-        await loadData();
+      try {
+        let proceed = true;
+        let errMsg = "";
+        let result: { status: boolean; data?: any; message: string };
+
+        if (proceed) {
+          result = await loadDealerList();
+          if (result.status) {
+            setDealers(result.data as unknown as dealerSchemaT[]);
+          } else {
+            proceed = false;
+            errMsg = result.message;
+          }
+        }
+
+        if (!proceed) {
+          setSnackbar({
+            open: true,
+            message: errMsg,
+            severity: "error",
+          });
+        }
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: handleErrorMsg(error),
+          severity: "error",
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchData();
-  }, [licenseNoFromUrl]);
+    if (!hasLoadedData.current) {
+      fetchData();
+      hasLoadedData.current = true;
+    }
+  }, []);
 
   const columns: GridColDef[] = [
     {
-      field: "date",
-      headerName: "Date",
+      field: "tran_date",
+      headerName: "Tran. Date",
+      type: "date",
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "inv_date",
+      headerName: "Inv. Date",
       type: "date",
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
@@ -62,15 +104,24 @@ const LicenseHistoryReport = () => {
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
+      field: "tran_type",
+      headerName: "Tran. Type",
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "modified_credits",
+      headerName: "Credits Modified",
+      type: "number",
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
       field: "particulars",
       headerName: "Particulars",
-      width: 1000,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
       field: "remarks",
       headerName: "Remarks",
-      width: 600,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
   ];
@@ -87,11 +138,21 @@ const LicenseHistoryReport = () => {
     }));
   };
 
-  const loadData = async () => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!filters.dealer_id || !filters.startDate || !filters.endDate) {
+      setSnackbar({
+        open: true,
+        message: "Please fill in all required fields",
+        severity: "error",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
-
-      const result = await loadLicenseHistory(filters.licenseNo);
+      const result = await loadLicenseHistory("kjkjkjk");
 
       if (!result.status) {
         setSnackbar({
@@ -111,11 +172,6 @@ const LicenseHistoryReport = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    await loadData();
   };
 
   return (
@@ -148,7 +204,7 @@ const LicenseHistoryReport = () => {
                 }}
               >
                 <CategoryIcon />
-                License History
+                Credit Point Ledger
               </Typography>
 
               <Box
@@ -160,14 +216,44 @@ const LicenseHistoryReport = () => {
                   flex: 1,
                 }}
               >
-                <TextField
+                <Autocomplete
+                  sx={{ width: "300px" }}
                   autoFocus
-                  label="License No."
-                  name="licenseNo"
+                  size="small"
+                  disabled={loading}
+                  options={dealers}
+                  // value={}
+                  getOptionLabel={(option) => option.name}
+                  onChange={(event, newValue) => {
+                    setFilters((prevFilters) => ({
+                      ...prevFilters,
+                      dealer_id: newValue ? newValue.id : null,
+                    }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField required {...params} label="Dealer" />
+                  )}
+                />
+
+                <TextField
+                  label="Start Date"
+                  name="startDate"
                   size="small"
                   disabled={loading}
                   required
-                  value={filters.licenseNo}
+                  type="date"
+                  value={filters.startDate}
+                  onChange={handleFilterChange}
+                />
+
+                <TextField
+                  label="End Date"
+                  name="endDate"
+                  size="small"
+                  disabled={loading}
+                  required
+                  type="date"
+                  value={filters.endDate}
                   onChange={handleFilterChange}
                 />
 

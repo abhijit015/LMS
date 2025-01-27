@@ -365,12 +365,13 @@ const Products = () => {
         </Alert>
       </Snackbar>
 
-      <ProductModal
-        open={isProductModalOpen}
-        productId={selectedProductId || undefined}
-        onClose={() => setIsProductModalOpen(false)}
-        onSave={handleProductSave}
-      />
+      {isProductModalOpen && (
+        <ProductModal
+          productId={selectedProductId || undefined}
+          onClose={() => setIsProductModalOpen(false)}
+          onSave={handleProductSave}
+        />
+      )}
     </Layout>
   );
 };

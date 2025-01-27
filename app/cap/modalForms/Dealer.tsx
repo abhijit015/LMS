@@ -31,19 +31,18 @@ import { INVITE_STATUS_ACCEPTED } from "@/app/utils/constants";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import theme from "../theme/theme";
+import SaveIcon from "@mui/icons-material/Save";
 
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
 interface DealerModalProps {
-  open: boolean;
   dealerId?: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const DealerModal: React.FC<DealerModalProps> = ({
-  open,
   dealerId,
   onClose,
   onSave,
@@ -158,7 +157,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       setLoading(true);
       fetchDealerData();
       hasLoadedData.current = true;
@@ -279,7 +278,7 @@ const DealerModal: React.FC<DealerModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -310,24 +309,23 @@ const DealerModal: React.FC<DealerModalProps> = ({
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-  {dealerId ? (
-    <EditIcon sx={{ color: "primary.main" }} />
-  ) : (
-    <AddIcon sx={{ color: "primary.main" }} />
-  )}
-  <Typography
-    variant="h6"
-    component="h2"
-    sx={{
-      color: "primary.main",
-      textAlign: "left",
-      fontWeight: "normal",
-    }}
-  >
-    {dealerId ? "Edit Dealer" : "Add Dealer"}
-  </Typography>
-</Box>
-
+              {dealerId ? (
+                <EditIcon sx={{ color: "primary.main" }} />
+              ) : (
+                <AddIcon sx={{ color: "primary.main" }} />
+              )}
+              <Typography
+                variant="h6"
+                component="h2"
+                sx={{
+                  color: "primary.main",
+                  textAlign: "left",
+                  fontWeight: "normal",
+                }}
+              >
+                {dealerId ? "Edit Dealer" : "Add Dealer"}
+              </Typography>
+            </Box>
 
             <IconButton
               onClick={onClose}
@@ -502,7 +500,12 @@ const DealerModal: React.FC<DealerModalProps> = ({
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

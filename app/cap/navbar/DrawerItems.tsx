@@ -224,6 +224,14 @@ const DrawerItems: React.FC<DrawerItemsProps> = ({ onClose, userData }) => {
               <ListItemText primary="License History" />
             </ListItemButton>
           </Link>
+          <Link href="/cap/reports/creditPointLedger" passHref>
+            <ListItemButton sx={{ pl: 4 }} onClick={onClose}>
+              <ListItemIcon>
+                <AssessmentIcon />
+              </ListItemIcon>
+              <ListItemText primary="Credit Point Ledger" />
+            </ListItemButton>
+          </Link>
         </List>
       </Collapse>
     </List>

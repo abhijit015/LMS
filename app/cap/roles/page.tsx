@@ -273,12 +273,13 @@ const Roles = () => {
         </Alert>
       </Snackbar>
 
-      <RoleModal
-        open={isRoleModalOpen}
-        roleId={selectedRoleId || null}
-        onClose={() => setIsRoleModalOpen(false)}
-        onSave={handleRoleSave}
-      />
+      {isRoleModalOpen && (
+        <RoleModal
+          roleId={selectedRoleId || null}
+          onClose={() => setIsRoleModalOpen(false)}
+          onSave={handleRoleSave}
+        />
+      )}
     </Layout>
   );
 };

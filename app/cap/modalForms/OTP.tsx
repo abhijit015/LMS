@@ -15,7 +15,6 @@ import { validateOTP } from "@/app/controllers/user.controller";
 import { handleErrorMsg } from "@/app/utils/common";
 
 interface OTPModalProps {
-  open: boolean;
   email: string;
   phone: string;
   onClose: () => void;
@@ -23,7 +22,6 @@ interface OTPModalProps {
 }
 
 const OTPModal: React.FC<OTPModalProps> = ({
-  open,
   email,
   phone,
   onClose,
@@ -93,7 +91,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={handleOnClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),

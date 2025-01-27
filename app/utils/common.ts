@@ -13,8 +13,22 @@ import {
   LICENSE_PARAM_USERS,
   LICENSE_PARAM_VALIDITY,
   LICENSE_PARAM_VARIANT,
+  LICENSE_TRAN_ASSIGN_DEALER_2_LICENSE,
+  LICENSE_TRAN_EXTEND_ADD_ON,
+  LICENSE_TRAN_EXTEND_USERS,
+  LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY,
+  LICENSE_TRAN_EXTEND_VALIDITY,
+  LICENSE_TRAN_EXTEND_VARIANT,
+  LICENSE_TRAN_GENERATE_NEW_LICENSE,
+  LICENSE_TRAN_NATURE_FREE_VARIANT,
+  LICENSE_TRAN_NATURE_TRIAL_PERIOD,
 } from "./constants";
-import { inviteSchemaT, dealerSchemaT, addonSchemaT } from "./models";
+import {
+  inviteSchemaT,
+  dealerSchemaT,
+  addonSchemaT,
+  licenseTranSchemaT,
+} from "./models";
 
 export const roleName2Id = (roleName: string): number => {
   switch (roleName) {
@@ -241,6 +255,7 @@ export function initLicenseTranData() {
     scheme_id: null,
     created_by: null,
     updated_by: null,
+    created_at: null,
   };
 }
 
@@ -252,23 +267,11 @@ export function initAddonStatusData() {
     addon_plan_id: 0,
     balance_addon_value: 0,
     grace: null,
+    expiry_date: new Date(),
     created_by: 0,
   };
 }
 
-// export function initDealerCreditLedgerData() {
-//   return {
-//     id: 0,
-//     dealer_id: null,
-//     tran_type: 0,
-//     tran_id: null,
-//     modified_credits: 0,
-//     ref_no: "",
-//     remarks: "",
-//     created_by: 0,
-//     updated_by: 0,
-//   };
-// }
 export function initDealerCreditLedgerData() {
   return {
     id: 0,
@@ -305,39 +308,12 @@ export function initExecutiveData() {
   };
 }
 
-// export function calculateExpiryDateByMonths(
-//   startDate: Date,
-//   months: number
-// ): Date {
-//   const currentDay = startDate.getDate();
-//   const currentMonth = startDate.getMonth();
-//   const currentYear = startDate.getFullYear();
-
-//   const targetMonth = currentMonth + months;
-//   const targetYear = currentYear + Math.floor(targetMonth / 12);
-//   const adjustedMonth = targetMonth % 12;
-
-//   const lastDayOfTargetMonth = new Date(
-//     targetYear,
-//     adjustedMonth + 1,
-//     0
-//   ).getDate();
-
-//   const expiryDay = Math.min(currentDay - 1, lastDayOfTargetMonth);
-
-//   return new Date(
-//     targetYear,
-//     adjustedMonth,
-//     expiryDay > 0 ? expiryDay : lastDayOfTargetMonth
-//   );
-// }
-
 export function calculateExpiryDateByMonths(
   startDate: Date,
   months: number
 ): Date | null {
   if (!Number.isFinite(months) || months < 0) {
-    return null; // Invalid input for months
+    return null;
   }
 
   const currentDay = startDate.getDate();
@@ -348,9 +324,8 @@ export function calculateExpiryDateByMonths(
   const targetYear = currentYear + Math.floor(targetMonth / 12);
   const adjustedMonth = targetMonth % 12;
 
-  // Check for date limits (e.g., prevent dates beyond the year 9999)
   if (targetYear > 9999 || targetYear < 0) {
-    return null; // Return null for unrealistic dates
+    return null;
   }
 
   const lastDayOfTargetMonth = new Date(
@@ -473,4 +448,57 @@ export function handleErrorMsg(error: unknown): string {
 
   // Handle any other type of error
   return String(error);
+}
+
+export function getLicenseExtensionStr(data: licenseTranSchemaT): string {
+  switch (data.tran_type) {
+    case LICENSE_TRAN_GENERATE_NEW_LICENSE: {
+      if (data.tran_nature === LICENSE_TRAN_NATURE_FREE_VARIANT) {
+        return (
+          "Started using " +
+          data.product_variant_name +
+          " with " +
+          data.no_of_users +
+          " users."
+        );
+      } else if (data.tran_nature === LICENSE_TRAN_NATURE_TRIAL_PERIOD) {
+        return (
+          "Started using " +
+          data.product_variant_name +
+          " with " +
+          data.no_of_users +
+          " users and " +
+          data.no_of_months +
+          " months validity."
+        );
+      }
+    }
+    case LICENSE_TRAN_ASSIGN_DEALER_2_LICENSE:
+      return "Assigned dealer " + data.dealer_name;
+    case LICENSE_TRAN_EXTEND_VARIANT:
+      return "Changed to variant " + data.product_variant_name;
+    case LICENSE_TRAN_EXTEND_USERS:
+      if (data.no_of_users) {
+        if (data.no_of_users > 0) {
+          return "Increased " + data.no_of_users + " users";
+        } else {
+          return "Decreased " + Math.abs(data.no_of_users) + " users";
+        }
+      }
+    case LICENSE_TRAN_EXTEND_VALIDITY:
+      return "Extended Validity for " + data.no_of_months + " months";
+    case LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY:
+      return (
+        "Extended Validity for " +
+        data.no_of_months +
+        " months and " +
+        data.no_of_users +
+        " users"
+      );
+    case LICENSE_TRAN_EXTEND_ADD_ON:
+      return "New License";
+
+    default:
+      return "";
+  }
 }

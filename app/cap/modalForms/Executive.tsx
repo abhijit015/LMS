@@ -41,16 +41,15 @@ import {
   INVITE_STATUS_ACCEPTED,
 } from "@/app/utils/constants";
 import theme from "../theme/theme";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface ExecutiveModalProps {
-  open: boolean;
   executiveId?: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
-  open,
   executiveId,
   onClose,
   onSave,
@@ -112,9 +111,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
       }
     };
 
-    if (open) {
-      fetchDepartments();
-    }
+    fetchDepartments();
   }, [open]);
 
   useEffect(() => {
@@ -139,9 +136,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
       }
     };
 
-    if (open) {
-      fetchRoles();
-    }
+    fetchRoles();
   }, [open]);
 
   useEffect(() => {
@@ -190,7 +185,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchExecutiveData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -339,7 +334,7 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -578,7 +573,12 @@ const ExecutiveModal: React.FC<ExecutiveModalProps> = ({
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

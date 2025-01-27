@@ -40,7 +40,6 @@ import ExtendUsers from "./ExtendUsers";
 import ExtendAddon from "./ExtendAddon";
 
 interface LicenseModalProps {
-  open: boolean;
   licenseId: number;
   onClose: () => void;
 }
@@ -53,11 +52,7 @@ interface AddonStatusList {
   grace: number;
 }
 
-const LicenseModal: React.FC<LicenseModalProps> = ({
-  open,
-  licenseId,
-  onClose,
-}) => {
+const LicenseModal: React.FC<LicenseModalProps> = ({ licenseId, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [addonStatus, setAddonStatus] = useState<AddonStatusList[]>([]);
   const [addonId, setAddonId] = useState<number>(0);
@@ -158,7 +153,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
   };
 
   useEffect(() => {
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchLicenseData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -273,7 +268,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
       headerName: "Balance Left",
       type: "number",
       flex: 1,
-      minWidth: 150,
+      minWidth: 100,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
@@ -281,7 +276,14 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
       headerName: "Grace",
       type: "number",
       flex: 1,
-      minWidth: 150,
+      minWidth: 100,
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+    },
+    {
+      field: "expiry_date",
+      headerName: "Valid Upto",
+      type: "date",
+      width: 100,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
@@ -343,7 +345,7 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -549,41 +551,46 @@ const LicenseModal: React.FC<LicenseModalProps> = ({
         </Alert>
       </Snackbar>
 
-      <AssignDealer
-        open={isAssignDealerModalOpen}
-        licenseId={licenseId}
-        onClose={() => setIsAssignDealerModalOpen(false)}
-        onSave={() => fetchLicenseData()}
-      />
+      {isAssignDealerModalOpen && (
+        <AssignDealer
+          licenseId={licenseId}
+          onClose={() => setIsAssignDealerModalOpen(false)}
+          onSave={() => fetchLicenseData()}
+        />
+      )}
 
-      <ExtendVariant
-        open={isExtendVariantModalOpen}
-        licenseId={licenseId}
-        onClose={() => setIsExtendVariantModalOpen(false)}
-        onSave={() => fetchLicenseData()}
-      />
+      {isExtendVariantModalOpen && (
+        <ExtendVariant
+          licenseId={licenseId}
+          onClose={() => setIsExtendVariantModalOpen(false)}
+          onSave={() => fetchLicenseData()}
+        />
+      )}
 
-      <ExtendValidity
-        open={isExtendValidityModalOpen}
-        licenseId={licenseId}
-        onClose={() => setIsExtendValidityModalOpen(false)}
-        onSave={() => fetchLicenseData()}
-      />
+      {isExtendValidityModalOpen && (
+        <ExtendValidity
+          licenseId={licenseId}
+          onClose={() => setIsExtendValidityModalOpen(false)}
+          onSave={() => fetchLicenseData()}
+        />
+      )}
 
-      <ExtendUsers
-        open={isExtendUsersModalOpen}
-        licenseId={licenseId}
-        onClose={() => setIsExtendUsersModalOpen(false)}
-        onSave={() => fetchLicenseData()}
-      />
+      {isExtendUsersModalOpen && (
+        <ExtendUsers
+          licenseId={licenseId}
+          onClose={() => setIsExtendUsersModalOpen(false)}
+          onSave={() => fetchLicenseData()}
+        />
+      )}
 
-      <ExtendAddon
-        open={isExtendAddonModalOpen}
-        licenseId={licenseId}
-        addonId={addonId}
-        onClose={() => setIsExtendAddonModalOpen(false)}
-        onSave={() => fetchLicenseData()}
-      />
+      {isExtendAddonModalOpen && (
+        <ExtendAddon
+          licenseId={licenseId}
+          addonId={addonId}
+          onClose={() => setIsExtendAddonModalOpen(false)}
+          onSave={() => fetchLicenseData()}
+        />
+      )}
     </>
   );
 };

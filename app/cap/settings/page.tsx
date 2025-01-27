@@ -12,8 +12,11 @@ import {
   Snackbar,
   Typography,
   Box,
+  Checkbox,
+  FormControlLabel,
+  FormGroup,
 } from "@mui/material";
-import CategoryIcon from "@mui/icons-material/Category";
+import SettingsIcon from "@mui/icons-material/Settings";
 
 const Settings = () => {
   const [loading, setLoading] = useState(false);
@@ -23,6 +26,9 @@ const Settings = () => {
     message: string;
     severity: "error" | "success" | "info" | "warning";
   }>({ open: false, message: "", severity: "info" });
+  const [settings, setSettings] = useState({
+    licenseOwnership: 0,
+  });
 
   const [confirmation, setConfirmation] = useState({
     open: false,
@@ -33,7 +39,6 @@ const Settings = () => {
   });
 
   const hasLoadedData = useRef(false);
-  const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     let result;
@@ -73,6 +78,10 @@ const Settings = () => {
     setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+  };
+
   const handleConfirmationClose = () => {
     setConfirmation({
       open: false,
@@ -93,7 +102,7 @@ const Settings = () => {
           boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.1)",
           backgroundColor: "#fff",
           mb: 2,
-          width: "100%",
+          width: "450px",
         }}
       >
         <CardContent>
@@ -104,13 +113,36 @@ const Settings = () => {
               display: "flex",
               alignItems: "center",
               gap: 1,
+              mb: 2,
             }}
           >
-            <CategoryIcon />
+            <SettingsIcon />
             Settings
           </Typography>
 
-          <form ref={formRef}>
+          <form onSubmit={handleSubmit}>
+            <FormGroup>
+              <FormControlLabel
+                control={<Checkbox defaultChecked />}
+                label="License Ownership"
+                name="license_ownership"
+              />
+              <FormControlLabel
+                control={<Checkbox defaultChecked />}
+                label="License Ownership"
+                name="license_ownership"
+              />
+              <FormControlLabel
+                control={<Checkbox defaultChecked />}
+                label="License Ownership"
+                name="license_ownership"
+              />
+              <FormControlLabel
+                control={<Checkbox defaultChecked />}
+                label="License Ownership"
+                name="license_ownership"
+              />
+            </FormGroup>
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 3 }}
             >

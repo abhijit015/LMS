@@ -27,16 +27,15 @@ import ConfirmationModal from "./AskYesNo";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface DepartmentModalProps {
-  open: boolean;
   departmentId?: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const DepartmentModal: React.FC<DepartmentModalProps> = ({
-  open,
   departmentId,
   onClose,
   onSave,
@@ -96,7 +95,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchDepartmentData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -188,7 +187,7 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -272,7 +271,12 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mt: 2 }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

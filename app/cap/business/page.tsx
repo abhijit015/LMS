@@ -758,12 +758,13 @@ const Business = () => {
         />
       )}
 
-      <BusinessModal
-        open={isBusinessModalOpen}
-        businessId={selectedBusinessId || null}
-        onClose={() => setIsBusinessModalOpen(false)}
-        onSave={handleBusinessSave}
-      />
+      {isBusinessModalOpen && (
+        <BusinessModal
+          businessId={selectedBusinessId || null}
+          onClose={() => setIsBusinessModalOpen(false)}
+          onSave={handleBusinessSave}
+        />
+      )}
 
       <Snackbar
         open={snackbar.open}

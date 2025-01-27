@@ -21,16 +21,15 @@ import {
 import ConfirmationModal from "./AskYesNo";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface BusinessModalProps {
-  open: boolean;
   businessId: number | null;
   onClose: () => void;
   onSave: () => void;
 }
 
 const BusinessModal: React.FC<BusinessModalProps> = ({
-  open,
   businessId,
   onClose,
   onSave,
@@ -83,7 +82,7 @@ const BusinessModal: React.FC<BusinessModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchBusinessData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -185,7 +184,7 @@ const BusinessModal: React.FC<BusinessModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+      open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -215,25 +214,24 @@ const BusinessModal: React.FC<BusinessModalProps> = ({
               mb: 1,
             }}
           >
-           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-  {businessId ? (
-    <EditIcon sx={{ color: "primary.main" }} />
-  ) : (
-    <AddIcon sx={{ color: "primary.main" }} />
-  )}
-  <Typography
-    variant="h6"
-    component="h2"
-    sx={{
-      color: "primary.main",
-      textAlign: "left",
-      fontWeight: "normal",
-    }}
-  >
-    {businessId ? "Edit Business" : "Add Business"}
-  </Typography>
-</Box>
-
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {businessId ? (
+                <EditIcon sx={{ color: "primary.main" }} />
+              ) : (
+                <AddIcon sx={{ color: "primary.main" }} />
+              )}
+              <Typography
+                variant="h6"
+                component="h2"
+                sx={{
+                  color: "primary.main",
+                  textAlign: "left",
+                  fontWeight: "normal",
+                }}
+              >
+                {businessId ? "Edit Business" : "Add Business"}
+              </Typography>
+            </Box>
 
             <IconButton
               onClick={onClose}
@@ -274,7 +272,12 @@ const BusinessModal: React.FC<BusinessModalProps> = ({
                 mb: 1,
               }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

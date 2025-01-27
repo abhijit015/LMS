@@ -1,6 +1,6 @@
 "use server";
 
-import { handleErrorMsg } from "../utils/common";
+import { getLicenseExtensionStr, handleErrorMsg } from "../utils/common";
 import {
   dealerCreditTranSchemaT,
   dealerSchemaT,
@@ -1088,6 +1088,63 @@ export async function checkIfLicenseExists4ProductFromDB(product_id: number) {
     };
   } catch (error) {
     console.error("Error in checkIfLicenseExists4Product:", error);
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseHistoryFromDB(license_no: string) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let query;
+  let result;
+  let transformedData;
+
+  try {
+    if (proceed) {
+      query = `
+      SELECT 
+        lt.*, 
+        (SELECT name FROM dealer_mast WHERE id = lt.dealer_id AND lt.dealer_id IS NOT NULL) AS dealer_name,
+        (SELECT name FROM addon_mast WHERE id = lt.addon_id AND lt.addon_id IS NOT NULL) AS addon_name,
+        (SELECT plan_name FROM addon_plan WHERE id = lt.addon_plan_id AND lt.addon_plan_id IS NOT NULL) AS addon_plan_name,
+        (SELECT name FROM product_variants WHERE id = lt.product_variant_id AND lt.product_variant_id IS NOT NULL) AS product_variant_name
+      FROM 
+        license_tran AS lt, license_det as ld
+      WHERE
+        ld.id=lt.license_id
+        and ld.license_no = ?
+        `;
+      result = await executeQueryInBusinessDB(query, [license_no]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error in loadLicenseHistoryFromDB.";
+      }
+    }
+
+    if (proceed) {
+      transformedData = result.map((row: licenseTranSchemaT) => ({
+        id: row.id,
+        vch_no: row.vch_no,
+        remarks: row.remarks,
+        date: row.created_at,
+        particulars: getLicenseExtensionStr(row),
+      }));
+
+      console.log("transformedData : ", transformedData);
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? transformedData : null,
+    };
+  } catch (error) {
+    console.error("Error in loadLicenseHistoryFromDB :", error);
     return {
       status: false,
       message: handleErrorMsg(error),

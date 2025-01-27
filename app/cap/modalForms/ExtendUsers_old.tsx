@@ -12,9 +12,6 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
 } from "@mui/material";
 import ConfirmationModal from "./AskYesNo";
 import CloseIcon from "@mui/icons-material/Close";
@@ -24,61 +21,53 @@ import {
   saveLicenseTran,
 } from "@/app/controllers/license.controller";
 import {
-  productVariantsSchemaT,
+  dealerSchemaT,
   licenseDetSchemaT,
   licenseStatusSchemaT,
   licenseTranSchemaT,
-  dealerSchemaT,
   productSchemaT,
 } from "@/app/utils/models";
+
 import { licenseTranSchema } from "@/app/utils/zodschema";
 import {
-  LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY,
-  LICENSE_TRAN_EXTEND_VALIDITY,
+  LICENSE_TRAN_EXTEND_USERS,
   LICENSE_TRAN_NATURE_GENERAL,
   PAYMENT_MODE_CREDITS,
 } from "@/app/utils/constants";
-import {
-  calculateExpiryDateByMonths,
-  formatDate,
-  formatNum,
-  initLicenseTranData,
-} from "@/app/utils/common";
+import { formatNum, initLicenseTranData } from "@/app/utils/common";
 import theme from "../theme/theme";
 import {
   getCurrentDealerDet,
   getDealerCreditBalance,
 } from "@/app/controllers/dealer.controller";
-import { loadProduct } from "@/app/controllers/product.controller";
 import { getCreditsReqd4ExtendingLicenseParam } from "@/app/controllers/pricing.controller";
+import { loadProduct } from "@/app/controllers/product.controller";
 import SaveIcon from "@mui/icons-material/Save";
 
-interface ExtendValidityProps {
+interface ExtendUsersProps {
   licenseId: number;
   onClose: () => void;
   onSave: () => void;
 }
 
-const ExtendValidity: React.FC<ExtendValidityProps> = ({
+const ExtendUsers: React.FC<ExtendUsersProps> = ({
   licenseId,
   onClose,
   onSave,
 }) => {
+  const [licenseTranData, setLicenseTranData] =
+    useState<licenseTranSchemaT | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [licenseDet, setLicenseDet] = useState<licenseDetSchemaT>();
   const [licenseStatus, setLicenseStatus] = useState<licenseStatusSchemaT>();
-  const [dealerData, setDealerData] = useState<dealerSchemaT>();
-  const [productData, setProductData] = useState<productSchemaT>();
-  const [availableCredits, setAvailableCredits] = useState<number>(0);
   const [additionalUsers, setAdditionalUsers] = useState<number>(0);
-  const [additionalMonths, setAdditionalMonths] = useState<number>(0);
   const [newTotalUsers, setNewTotalUsers] = useState<number>(0);
-  const [newExpiry, setNewExpiry] = useState<Date | null>(null);
+  const [availableCredits, setAvailableCredits] = useState<number>(0);
   const [productUsers, setProductUsers] = useState<number>(0);
   const [requiredCredits, setRequiredCredits] = useState<number>(0);
-  const [extendUsers, setExtendUsers] = useState<boolean>(false);
-  useState<productVariantsSchemaT | null>(null);
+  const [dealerData, setDealerData] = useState<dealerSchemaT>();
+  const [productData, setProductData] = useState<productSchemaT>();
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
     title: "",
@@ -101,8 +90,8 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
         let proceed = true;
         let errMsg = "";
         let result: { status: boolean; data?: any; message: string };
-        let productId: number = 0;
         let dealerId: number = 0;
+        let productId: number = 0;
 
         setLoading(true);
 
@@ -118,29 +107,18 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
         }
 
         if (proceed) {
+          setProductUsers(75);
+        }
+
+        if (proceed) {
           result = await loadLicenseStatus(licenseId);
           if (!result.status) {
             proceed = false;
             errMsg = result.message;
           } else {
             setLicenseStatus(result.data as licenseStatusSchemaT);
-            setNewExpiry(result.data.expiry_date);
-            setNewTotalUsers(result.data.no_of_users);
+            setNewTotalUsers(result.data.no_of_users || 0);
           }
-        }
-
-        if (proceed) {
-          result = await loadProduct(productId);
-          if (!result.status) {
-            proceed = false;
-            errMsg = result.message;
-          } else {
-            setProductData(result.data as productSchemaT);
-          }
-        }
-
-        if (proceed) {
-          setProductUsers(75);
         }
 
         if (proceed) {
@@ -151,6 +129,16 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
           } else {
             setDealerData(result.data as dealerSchemaT);
             dealerId = result.data.id;
+          }
+        }
+
+        if (proceed) {
+          result = await loadProduct(productId);
+          if (!result.status) {
+            proceed = false;
+            errMsg = result.message;
+          } else {
+            setProductData(result.data as productSchemaT);
           }
         }
 
@@ -187,61 +175,23 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
       hasLoadedData.current = true;
     } else if (!open) {
       setErrors({});
-      setAvailableCredits(0);
+      setLicenseTranData(null);
+      setAdditionalUsers(0);
+      setNewTotalUsers(0);
       setRequiredCredits(0);
-      setExtendUsers(false);
       hasLoadedData.current = false;
     }
   }, [open]);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
-    const licenseTranData: licenseTranSchemaT = initLicenseTranData();
-
-    licenseTranData.tran_type = extendUsers
-      ? LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY
-      : LICENSE_TRAN_EXTEND_VALIDITY;
-    if (licenseDet?.id) {
-      licenseTranData.license_id = licenseDet?.id;
-    }
-    licenseTranData.tran_nature = LICENSE_TRAN_NATURE_GENERAL;
-    licenseTranData.no_of_users = additionalUsers;
-    licenseTranData.no_of_months = additionalMonths;
-    licenseTranData.payment_amt = requiredCredits;
-    licenseTranData.payment_mode = PAYMENT_MODE_CREDITS;
-
-    let result = licenseTranSchema.safeParse(licenseTranData);
-
-    console.log("result : ", result);
-
-    if (result.success) {
-      setConfirmationModal({
-        open: true,
-        title: "Confirm Save",
-        message: "Are you sure you want to save this transaction?",
-        onConfirm: () => confirmSave(result.data),
-        onClose: () => {},
-      });
-    } else {
-      const validationErrors = result.error.errors.reduce((acc, curr) => {
-        acc[curr.path[0]] = curr.message;
-        return acc;
-      }, {} as { [key: string]: string });
-      setErrors(validationErrors);
-    }
-  };
-
-  const updateCredits = async (addedUsers: number, addedMonths: number) => {
+  const updateCredits = async (addedUsers: number) => {
     try {
       setLoading(true);
 
       let result = await getCreditsReqd4ExtendingLicenseParam(
         licenseDet?.id || 0,
-        LICENSE_TRAN_EXTEND_USERS_AND_VALIDITY,
+        LICENSE_TRAN_EXTEND_USERS,
         undefined,
-        addedUsers,
-        addedMonths
+        addedUsers
       );
       if (result.status) {
         if (result.data) {
@@ -281,32 +231,40 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
     }
 
     debounceTimeout.current = setTimeout(() => {
-      updateCredits(addedUsers, additionalMonths);
+      updateCredits(addedUsers);
     }, 500);
   };
 
-  const handleValidityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const licenseTranData: licenseTranSchemaT = initLicenseTranData();
 
-    const addedMonths = Number(value);
-    setAdditionalMonths(addedMonths);
-
-    if (licenseStatus?.expiry_date) {
-      const newExpiryDate = calculateExpiryDateByMonths(
-        licenseStatus?.expiry_date,
-        addedMonths
-      );
-
-      setNewExpiry(newExpiryDate);
+    licenseTranData.tran_type = LICENSE_TRAN_EXTEND_USERS;
+    if (licenseDet?.id) {
+      licenseTranData.license_id = licenseDet?.id;
     }
+    licenseTranData.tran_nature = LICENSE_TRAN_NATURE_GENERAL;
+    licenseTranData.no_of_users = additionalUsers;
+    licenseTranData.payment_amt = requiredCredits;
+    licenseTranData.payment_mode = PAYMENT_MODE_CREDITS;
 
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
+    let result = licenseTranSchema.safeParse(licenseTranData);
+
+    if (result.success) {
+      setConfirmationModal({
+        open: true,
+        title: "Confirm Save",
+        message: "Are you sure you want to save this transaction?",
+        onConfirm: () => confirmSave(result.data),
+        onClose: () => {},
+      });
+    } else {
+      const validationErrors = result.error.errors.reduce((acc, curr) => {
+        acc[curr.path[0]] = curr.message;
+        return acc;
+      }, {} as { [key: string]: string });
+      setErrors(validationErrors);
     }
-
-    debounceTimeout.current = setTimeout(() => {
-      updateCredits(additionalUsers, addedMonths);
-    }, 500);
   };
 
   const confirmSave = async (parsedData: licenseTranSchemaT) => {
@@ -318,7 +276,7 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
       if (result.status) {
         setSnackbar({
           open: true,
-          message: "Validity extended successfully.",
+          message: "Users extended successfully.",
           severity: "success",
         });
         onSave();
@@ -333,7 +291,7 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
     } catch (error) {
       setSnackbar({
         open: true,
-        message: "Error extending validity.",
+        message: "Error extending users.",
         severity: "error",
       });
     } finally {
@@ -343,13 +301,6 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
 
   const handleSnackbarClose = () => {
     setSnackbar((prevState) => ({ ...prevState, open: false }));
-  };
-
-  const handleExtendUsersChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-    checked: boolean
-  ) => {
-    setExtendUsers(checked);
   };
 
   return (
@@ -395,7 +346,7 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
                   fontWeight: "normal",
                 }}
               >
-                Extend Validity
+                Extend Users
               </Typography>
             </Box>
             <IconButton
@@ -411,23 +362,6 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
           </Box>
 
           <Divider />
-
-          <FormGroup
-            sx={{
-              mt: 2,
-              mb: 2,
-            }}
-          >
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={extendUsers}
-                  onChange={handleExtendUsersChange}
-                />
-              }
-              label="Extend Users Along with Validity"
-            />
-          </FormGroup>
 
           <Box
             sx={{
@@ -451,64 +385,45 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
                 color: theme.palette.secondary.dark,
               }}
             >
-              Current Validity Details
+              Current User Details
             </legend>
+
             <Box
               sx={{
                 display: "grid",
                 gridTemplateColumns: "120px 20px auto",
                 alignItems: "start",
+                mb: 2,
                 mt: 1,
               }}
             >
               <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                Current Expiry
+                Current Users
               </Typography>
               <Typography sx={{ textAlign: "left" }}>:</Typography>
               <Typography sx={{ textAlign: "left" }}>
-                {formatDate(licenseStatus?.expiry_date)}
+                {formatNum(licenseStatus?.no_of_users) || ""}
               </Typography>
             </Box>
-            {extendUsers && (
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "120px 20px auto",
-                  alignItems: "start",
-                  mb: 2,
-                  mt: 2,
-                }}
-              >
-                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                  Current Users
-                </Typography>
-                <Typography sx={{ textAlign: "left" }}>:</Typography>
-                <Typography sx={{ textAlign: "left" }}>
-                  {licenseStatus?.no_of_users}
-                </Typography>
-              </Box>
-            )}
-            {extendUsers && (
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "120px 20px auto",
-                  alignItems: "start",
-                }}
-              >
-                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                  {productData?.name} Users
-                </Typography>
-                <Typography sx={{ textAlign: "left" }}>:</Typography>
-                <Typography sx={{ textAlign: "left" }}>
-                  {formatNum(productUsers)}
-                </Typography>
-              </Box>
-            )}{" "}
+
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "120px 20px auto",
+                alignItems: "start",
+              }}
+            >
+              <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                {productData?.name} Users
+              </Typography>
+              <Typography sx={{ textAlign: "left" }}>:</Typography>
+              <Typography sx={{ textAlign: "left" }}>
+                {formatNum(productUsers)}
+              </Typography>
+            </Box>
           </Box>
 
           <form onSubmit={handleSubmit}>
-            {" "}
             <Box
               sx={{
                 border: "1px solid #ccc",
@@ -545,29 +460,15 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
                 <TextField
                   type="number"
                   autoComplete="off"
-                  label="Specify Months"
-                  name="no_of_months"
+                  label="Specify Users"
+                  name="no_of_users"
                   size="small"
                   disabled={loading}
                   required
-                  onChange={handleValidityChange}
-                  error={!!errors.no_of_months}
-                  helperText={errors.no_of_months}
+                  onChange={handleUsersChange}
+                  error={!!errors.no_of_users}
+                  helperText={errors.no_of_users}
                 />
-                {extendUsers && (
-                  <TextField
-                    type="number"
-                    autoComplete="off"
-                    label="Specify Users"
-                    name="no_of_users"
-                    size="small"
-                    disabled={loading}
-                    required
-                    onChange={handleUsersChange}
-                    error={!!errors.no_of_users}
-                    helperText={errors.no_of_users}
-                  />
-                )}
               </Box>
 
               <Box
@@ -579,32 +480,13 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
                 }}
               >
                 <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                  New Expiry
+                  New Users
                 </Typography>
                 <Typography sx={{ textAlign: "left" }}>:</Typography>
                 <Typography sx={{ textAlign: "left" }}>
-                  {formatDate(newExpiry)}
+                  {formatNum(newTotalUsers)}
                 </Typography>
               </Box>
-
-              {extendUsers && (
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "150px 20px auto",
-                    alignItems: "start",
-                    mt: 2,
-                  }}
-                >
-                  <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                    New Users
-                  </Typography>
-                  <Typography sx={{ textAlign: "left" }}>:</Typography>
-                  <Typography sx={{ textAlign: "left" }}>
-                    {formatNum(newTotalUsers)}
-                  </Typography>
-                </Box>
-              )}
 
               <Box
                 sx={{
@@ -641,12 +523,7 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
               </Box>
             </Box>
             <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 2,
-                mb: 1,
-              }}
+              sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 1 }}
             >
               <Button
                 type="submit"
@@ -654,12 +531,10 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
                 variant="contained"
                 disabled={
                   loading ||
-                  additionalMonths <= 0 ||
-                  !newExpiry ||
                   requiredCredits > availableCredits ||
+                  additionalUsers === 0 ||
                   newTotalUsers <= 0 ||
-                  newTotalUsers < productUsers ||
-                  additionalUsers === 0
+                  newTotalUsers < productUsers
                 }
               >
                 {loading ? (
@@ -704,4 +579,4 @@ const ExtendValidity: React.FC<ExtendValidityProps> = ({
   );
 };
 
-export default ExtendValidity;
+export default ExtendUsers;

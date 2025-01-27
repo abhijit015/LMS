@@ -47,16 +47,15 @@ import {
   initLicenseTranData,
 } from "@/app/utils/common";
 import { getCreditsReqd4ExtendingLicenseParam } from "@/app/controllers/pricing.controller";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface ExtendVariantProps {
-  open: boolean;
   licenseId: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const ExtendVariant: React.FC<ExtendVariantProps> = ({
-  open,
   licenseId,
   onClose,
   onSave,
@@ -197,7 +196,7 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -340,7 +339,7 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -521,6 +520,7 @@ const ExtendVariant: React.FC<ExtendVariantProps> = ({
             >
               <Button
                 type="submit"
+                startIcon={<SaveIcon />}
                 variant="contained"
                 disabled={
                   loading ||

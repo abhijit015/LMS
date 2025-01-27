@@ -13,6 +13,7 @@ import {
   loadAddonStatus4LicenseFromDB,
   loadAllAddonStatus4LicenseFromDB,
   loadLicenseDetFromDB,
+  loadLicenseHistoryFromDB,
   loadLicenseList4DealerFromDB,
   loadLicenseStatusFromDB,
   loadLicenseTranFromDB,
@@ -464,14 +465,17 @@ export async function loadAllAddonStatus4License(license_id: number) {
   }
 }
 
-export async function loadAddonStatus4License(license_id: number,addon_id: number) {
+export async function loadAddonStatus4License(
+  license_id: number,
+  addon_id: number
+) {
   let errMsg: string = "";
   let proceed: boolean = true;
   let result;
 
   try {
     if (proceed) {
-      result = await loadAddonStatus4LicenseFromDB(license_id,addon_id);
+      result = await loadAddonStatus4LicenseFromDB(license_id, addon_id);
 
       if (!result.status) {
         proceed = false;
@@ -668,6 +672,38 @@ export async function checkIfLicenseExists4Product(product_id: number) {
   try {
     if (proceed) {
       result = await checkIfLicenseExists4ProductFromDB(product_id);
+
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
+export async function loadLicenseHistory(
+  license_no: string,
+   
+) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await loadLicenseHistoryFromDB(license_no);
 
       if (!result.status) {
         proceed = false;

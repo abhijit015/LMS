@@ -438,12 +438,13 @@ const Credits = () => {
         </Alert>
       </Snackbar>
 
-      <CreditModal
-        open={isCreditModalOpen}
-        dealerCreditTranId={selectedCreditId || undefined}
-        onClose={() => setIsCreditModalOpen(false)}
-        onSave={handleCreditSave}
-      />
+      {isCreditModalOpen && (
+        <CreditModal
+          dealerCreditTranId={selectedCreditId || undefined}
+          onClose={() => setIsCreditModalOpen(false)}
+          onSave={handleCreditSave}
+        />
+      )}
     </Layout>
   );
 };

@@ -57,9 +57,9 @@ import {
   loadCurrentAddonPlans,
 } from "@/app/controllers/pricing.controller";
 import { loadAddon, loadAddonList } from "@/app/controllers/addon.controller";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface ExtendAddonProps {
-  open: boolean;
   licenseId: number;
   addonId?: number;
   onClose: () => void;
@@ -67,7 +67,6 @@ interface ExtendAddonProps {
 }
 
 const ExtendAddon: React.FC<ExtendAddonProps> = ({
-  open,
   licenseId,
   addonId,
   onClose,
@@ -79,7 +78,9 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
   const [dealerData, setDealerData] = useState<dealerSchemaT>();
   const [availableCredits, setAvailableCredits] = useState<number>(0);
   const [requiredCredits, setRequiredCredits] = useState<number>(0);
-  const [addonStatus, setAddonStatus] = useState<addonStatusSchemaT|null>(null);
+  const [addonStatus, setAddonStatus] = useState<addonStatusSchemaT | null>(
+    null
+  );
   const [addons, setAddons] = useState<addonSchemaT[]>([]);
   const [addonPlans, setAddonPlans] = useState<addonPlansSchemaT[]>([]);
   const [productId, setProductId] = useState<number>(0);
@@ -141,13 +142,26 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
           }
         }
 
-        if (proceed && addonId) {
-          result = await loadCurrentAddonPlans(addonId, productId, variantId);
+        // if (proceed && addonId) {
+        //   result = await loadCurrentAddonPlans(addonId, productId, variantId);
+        //   if (!result.status) {
+        //     proceed = false;
+        //     errMsg = result.message;
+        //   } else {
+        //     setAddonPlans(result.data as addonPlansSchemaT[]);
+        //   }
+        // }
+
+        if (proceed) {
+          result = await loadCurrentAddonPlans(productId, variantId);
           if (!result.status) {
             proceed = false;
             errMsg = result.message;
           } else {
-            setAddonPlans(result.data as addonPlansSchemaT[]);
+            const filteredAddonPlans = result.data.filter(
+              (plan: addonPlansSchemaT) => plan.addon_id === addonId
+            );
+            setAddonPlans(filteredAddonPlans);
           }
         }
 
@@ -221,7 +235,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -256,13 +270,25 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
         setSelectedAddonValue(null);
       }
 
-      if (proceed && value) {
-        result = await loadCurrentAddonPlans(value.id, productId, variantId);
+      // if (proceed && value) {
+      //   result = await loadCurrentAddonPlans(value.id, productId, variantId);
+      //   if (!result.status) {
+      //     proceed = false;
+      //     errMsg = result.message;
+      //   } else {
+      //     setAddonPlans(result.data as addonPlansSchemaT[]);
+      //   }
+      // }
+      if (proceed) {
+        result = await loadCurrentAddonPlans(productId, variantId);
         if (!result.status) {
           proceed = false;
           errMsg = result.message;
         } else {
-          setAddonPlans(result.data as addonPlansSchemaT[]);
+          const filteredAddonPlans = result.data.filter(
+            (plan: addonPlansSchemaT) => plan.addon_id === addonId
+          );
+          setAddonPlans(filteredAddonPlans);
         }
       }
 
@@ -377,7 +403,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -665,6 +691,7 @@ const ExtendAddon: React.FC<ExtendAddonProps> = ({
             >
               <Button
                 type="submit"
+                startIcon={<SaveIcon />}
                 variant="contained"
                 disabled={
                   loading ||

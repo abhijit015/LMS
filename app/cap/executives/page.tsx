@@ -686,12 +686,13 @@ const Executives = () => {
         </Alert>
       </Snackbar>
 
-      <ExecutiveModal
-        open={isExecutiveModalOpen}
-        executiveId={selectedExecutiveId || undefined}
-        onClose={() => setIsExecutiveModalOpen(false)}
-        onSave={handleExecutiveSave}
-      />
+      {isExecutiveModalOpen && (
+        <ExecutiveModal
+          executiveId={selectedExecutiveId || undefined}
+          onClose={() => setIsExecutiveModalOpen(false)}
+          onSave={handleExecutiveSave}
+        />
+      )}
     </Layout>
   );
 };

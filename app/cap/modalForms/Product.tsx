@@ -49,7 +49,6 @@ import { randomId } from "@mui/x-data-grid-generator";
 import { checkIfLicenseExists4Product } from "@/app/controllers/license.controller";
 
 interface ProductModalProps {
-  open: boolean;
   productId?: number;
   onClose: () => void;
   onSave: () => void;
@@ -109,7 +108,6 @@ function EditToolbar(props: GridSlotProps["toolbar"]) {
 }
 
 const ProductModal: React.FC<ProductModalProps> = ({
-  open,
   productId,
   onClose,
   onSave,
@@ -182,7 +180,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if ( !hasLoadedData.current) {
       fetchProductData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -474,7 +472,7 @@ const ProductModal: React.FC<ProductModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -612,7 +610,12 @@ const ProductModal: React.FC<ProductModalProps> = ({
                 mb: 1,
               }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

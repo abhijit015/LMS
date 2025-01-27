@@ -36,16 +36,15 @@ import {
 } from "@/app/utils/constants";
 import { loadDealerList } from "@/app/controllers/dealer.controller";
 import { initLicenseTranData } from "@/app/utils/common";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface AssignDealerProps {
-  open: boolean;
   licenseId: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const AssignDealer: React.FC<AssignDealerProps> = ({
-  open,
   licenseId,
   onClose,
   onSave,
@@ -138,7 +137,7 @@ const AssignDealer: React.FC<AssignDealerProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -238,7 +237,7 @@ const AssignDealer: React.FC<AssignDealerProps> = ({
   return (
     <>
       <Modal
-        open={open}
+         open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),

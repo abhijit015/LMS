@@ -22,19 +22,18 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import CheckBoxOutlineBlankIcon from "@mui/icons-material/CheckBoxOutlineBlank";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
+import SaveIcon from "@mui/icons-material/Save";
 
 const icon = <CheckBoxOutlineBlankIcon fontSize="small" />;
 const checkedIcon = <CheckBoxIcon fontSize="small" />;
 
 interface AddonModalProps {
-  open: boolean;
   addonId?: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const AddonModal: React.FC<AddonModalProps> = ({
-  open,
   addonId,
   onClose,
   onSave,
@@ -93,7 +92,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchAddonData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -191,7 +190,7 @@ const AddonModal: React.FC<AddonModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -275,7 +274,12 @@ const AddonModal: React.FC<AddonModalProps> = ({
             <Box
               sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 1 }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

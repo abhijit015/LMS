@@ -360,12 +360,13 @@ const Addons = () => {
         </Alert>
       </Snackbar>
 
-      <AddonModal
-        open={isAddonModalOpen}
-        addonId={selectedAddonId || undefined}
-        onClose={() => setIsAddonModalOpen(false)}
-        onSave={handleAddonSave}
-      />
+      {isAddonModalOpen && (
+        <AddonModal
+          addonId={selectedAddonId || undefined}
+          onClose={() => setIsAddonModalOpen(false)}
+          onSave={handleAddonSave}
+        />
+      )}
     </Layout>
   );
 };

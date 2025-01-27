@@ -275,12 +275,15 @@ const AppBarComponent: React.FC<{
           </Box>
         </Toolbar>
       </AppBar>
-      <BusinessModal
-        open={isBusinessModalOpen}
-        businessId={businessData?.id || null}
-        onClose={() => setIsBusinessModalOpen(false)}
-        onSave={handleBusinessSave}
-      />
+
+      {isBusinessModalOpen && (
+        <BusinessModal
+          businessId={businessData?.id || null}
+          onClose={() => setIsBusinessModalOpen(false)}
+          onSave={handleBusinessSave}
+        />
+      )}
+
       {isClient && (
         <>
           <Drawer

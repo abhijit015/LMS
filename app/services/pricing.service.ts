@@ -8,9 +8,9 @@ import {
   variantPricingSchemaT,
 } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
+import { Connection } from "mariadb";
 
 export async function loadCurrentAddonPlansFromDB(
-  addon_id: number,
   product_id: number,
   product_variant_id: number
 ) {
@@ -23,25 +23,22 @@ export async function loadCurrentAddonPlansFromDB(
   try {
     if (proceed) {
       query = `
-            SELECT *
+            SELECT *, (SELECT am.name FROM addon_mast AS am WHERE am.id = ap.addon_id) AS addon_name
       FROM addon_plan ap
-      WHERE ap.addon_id = ?
-        AND ap.product_id = ?
+      WHERE ap.product_id = ?
         AND ap.product_variant_id = ?
         AND ap.effective_from = (
             SELECT MAX(effective_from)
             FROM addon_plan
-            WHERE addon_id = ?
-              AND product_id = ?
+            WHERE product_id = ?
               AND product_variant_id = ?
               AND effective_from <= CURDATE()
         );
     `;
       result = await executeQueryInBusinessDB(query, [
-        addon_id,
         product_id,
         product_variant_id,
-        addon_id,
+
         product_id,
         product_variant_id,
       ]);
@@ -68,7 +65,6 @@ export async function loadCurrentAddonPlansFromDB(
 }
 
 export async function loadActiveAddonPlansFromDB(
-  addon_id: number,
   product_id: number,
   product_variant_id: number
 ) {
@@ -81,41 +77,41 @@ export async function loadActiveAddonPlansFromDB(
   try {
     if (proceed) {
       query = `
-      (
       SELECT *
-      FROM addon_plan ap
-      WHERE ap.addon_id = ?
-        AND ap.product_id = ?
-        AND ap.product_variant_id = ?
-        AND ap.effective_from = (
-            SELECT MAX(effective_from)
-            FROM addon_plan
-            WHERE addon_id = ?
-              AND product_id = ?
-              AND product_variant_id = ?
-              AND effective_from <= CURDATE()
-        )
-      )
-      UNION ALL
-      (
-          SELECT *
+      FROM (
+          (
+          SELECT *, 
+                 (SELECT am.name FROM addon_mast AS am WHERE am.id = ap.addon_id) AS addon_name
           FROM addon_plan ap
-          WHERE ap.addon_id = ?
-            AND ap.product_id = ?
+          WHERE ap.product_id = ?
             AND ap.product_variant_id = ?
-            AND ap.effective_from > CURDATE()
-          ORDER BY ap.effective_from ASC
-      );
+            AND ap.effective_from = (
+                SELECT MAX(effective_from)
+                FROM addon_plan
+                WHERE product_id = ?
+                  AND product_variant_id = ?
+                  AND effective_from <= CURDATE()
+            )
+          )
+          UNION ALL
+          (
+              SELECT *, 
+                     (SELECT am.name FROM addon_mast AS am WHERE am.id = ap.addon_id) AS addon_name
+              FROM addon_plan ap
+              WHERE ap.product_id = ?
+                AND ap.product_variant_id = ?
+                AND ap.effective_from > CURDATE()
+              ORDER BY ap.effective_from ASC
+          )
+      ) AS combined_results
+      ORDER BY addon_id ASC;
+  `;
 
-    `;
       result = await executeQueryInBusinessDB(query, [
-        addon_id,
         product_id,
         product_variant_id,
-        addon_id,
         product_id,
         product_variant_id,
-        addon_id,
         product_id,
         product_variant_id,
       ]);
@@ -345,7 +341,6 @@ export async function loadActiveVariantPricingFromDB(
 }
 
 export async function loadPrevAddonPlansFromDB(
-  addon_id: number,
   product_id: number,
   product_variant_id: number
 ) {
@@ -356,27 +351,24 @@ export async function loadPrevAddonPlansFromDB(
   try {
     if (proceed) {
       const query = `
-        SELECT *
-        FROM addon_plan ap
-        WHERE ap.addon_id = ?
-          AND ap.product_id = ?
-          AND ap.product_variant_id = ?
-          AND ap.effective_from <= CURDATE()
-          AND ap.effective_from < (
-            SELECT MAX(effective_from)
-            FROM addon_plan
-            WHERE addon_id = ?
-              AND product_id = ?
-              AND product_variant_id = ?
-              AND effective_from <= CURDATE())
-        ORDER BY ap.effective_from DESC;
-      `;
+    SELECT *, (SELECT am.name FROM addon_mast AS am WHERE am.id = ap.addon_id) AS addon_name
+    FROM addon_plan ap
+    WHERE ap.product_id = ?
+      AND ap.product_variant_id = ?
+      AND ap.effective_from <= CURDATE()
+      AND ap.effective_from < (
+        SELECT MAX(effective_from)
+        FROM addon_plan
+        WHERE product_id = ?
+          AND product_variant_id = ?
+          AND effective_from <= CURDATE()
+      )
+    ORDER BY ap.effective_from DESC, ap.addon_id ASC;
+`;
 
       result = await executeQueryInBusinessDB(query, [
-        addon_id,
         product_id,
         product_variant_id,
-        addon_id,
         product_id,
         product_variant_id,
       ]);
@@ -436,17 +428,19 @@ export async function loadPrevUserDiscountSlabsFromDB(
 
       if (result.length < 0) {
         proceed = false;
-        errMsg = "Error loading user discount slabs.";
+        errMsg = "Error loading User-wise Discount Slabs.";
       }
     }
 
     return {
       status: proceed,
-      message: proceed ? "User discount slabs loaded successfully." : errMsg,
+      message: proceed
+        ? "User-wise Discount Slabs loaded successfully."
+        : errMsg,
       data: proceed ? result : null,
     };
   } catch (error) {
-    console.error("Error loading user discount slabs:", error);
+    console.error("Error loading User-wise Discount Slabs:", error);
     return {
       status: false,
       message: handleErrorMsg(error),
@@ -489,19 +483,19 @@ export async function loadPrevValidityDiscountSlabsFromDB(
 
       if (result.length < 0) {
         proceed = false;
-        errMsg = "Error loading previous validity discount slabs.";
+        errMsg = "Error loading previous Validity Extension Discount Slabs.";
       }
     }
 
     return {
       status: proceed,
       message: proceed
-        ? "Validity discount slabs loaded successfully."
+        ? "Validity Extension Discount Slabs loaded successfully."
         : errMsg,
       data: proceed ? result : null,
     };
   } catch (error) {
-    console.error("Error loading validity discount slabs:", error);
+    console.error("Error loading Validity Extension Discount Slabs:", error);
     return {
       status: false,
       message: handleErrorMsg(error),
@@ -566,18 +560,23 @@ export async function loadPrevVariantPricingFromDB(
 export async function saveVariantPricingInDB(
   variantPricingData: variantPricingSchemaT[],
   product_id: number,
-  product_variant_id: number
+  product_variant_id: number,
+  connection?: Connection
 ) {
   let proceed: boolean = true;
   let errMsg: string = "";
   let result;
   let query: string;
-  let connection;
+  let businessDBConn;
   let values: any[];
 
   try {
-    connection = await getBusinessDBConn();
-    await connection.beginTransaction();
+    if (connection) {
+      businessDBConn = connection;
+    } else {
+      businessDBConn = await getBusinessDBConn();
+      await businessDBConn.beginTransaction();
+    }
 
     if (proceed && variantPricingData) {
       query = `
@@ -588,7 +587,7 @@ export async function saveVariantPricingInDB(
       const existingPricing = await executeQueryInBusinessDB(
         query,
         [product_id, product_variant_id],
-        connection
+        businessDBConn
       );
 
       const existingPricingIds = existingPricing.map(
@@ -607,7 +606,7 @@ export async function saveVariantPricingInDB(
         result = await executeQueryInBusinessDB(
           query,
           [pricingToDelete],
-          connection
+          businessDBConn
         );
 
         if (result.affectedRows < 0) {
@@ -656,7 +655,7 @@ export async function saveVariantPricingInDB(
           ];
         }
 
-        result = await executeQueryInBusinessDB(query, values, connection);
+        result = await executeQueryInBusinessDB(query, values, businessDBConn);
 
         if (result.affectedRows < 1) {
           proceed = false;
@@ -668,10 +667,12 @@ export async function saveVariantPricingInDB(
       }
     }
 
-    if (proceed) {
-      await connection.commit();
-    } else {
-      await connection.rollback();
+    if (!connection) {
+      if (proceed) {
+        await businessDBConn.commit();
+      } else {
+        await businessDBConn.rollback();
+      }
     }
 
     return {
@@ -680,7 +681,9 @@ export async function saveVariantPricingInDB(
       data: proceed ? variantPricingData.map((plan) => plan.id) : null,
     };
   } catch (error) {
-    if (connection) await connection.rollback();
+    if (!connection && businessDBConn) {
+      await businessDBConn.rollback();
+    }
     console.error("Error saving variant_pricing:", error);
     return {
       status: false,
@@ -688,25 +691,32 @@ export async function saveVariantPricingInDB(
       data: null,
     };
   } finally {
-    if (connection) connection.end();
+    if (!connection && businessDBConn) {
+      await businessDBConn.end();
+    }
   }
 }
 
 export async function saveUserDiscountSlabsInDB(
   userDiscountSlabsData: userDiscountSlabSchemaT[],
   product_id: number,
-  product_variant_id: number
+  product_variant_id: number,
+  connection?: Connection
 ) {
   let proceed: boolean = true;
   let errMsg: string = "";
   let result;
   let query: string;
-  let connection;
+  let businessDBConn;
   let values: any[];
 
   try {
-    connection = await getBusinessDBConn();
-    await connection.beginTransaction();
+    if (connection) {
+      businessDBConn = connection;
+    } else {
+      businessDBConn = await getBusinessDBConn();
+      await businessDBConn.beginTransaction();
+    }
 
     if (proceed && userDiscountSlabsData) {
       query = `
@@ -717,7 +727,7 @@ export async function saveUserDiscountSlabsInDB(
       const existingSlabs = await executeQueryInBusinessDB(
         query,
         [product_id, product_variant_id],
-        connection
+        businessDBConn
       );
 
       const existingSlabIds = existingSlabs.map(
@@ -736,7 +746,7 @@ export async function saveUserDiscountSlabsInDB(
         result = await executeQueryInBusinessDB(
           query,
           [slabsToDelete],
-          connection
+          businessDBConn
         );
 
         if (result.affectedRows < 0) {
@@ -789,7 +799,7 @@ export async function saveUserDiscountSlabsInDB(
           ];
         }
 
-        result = await executeQueryInBusinessDB(query, values, connection);
+        result = await executeQueryInBusinessDB(query, values, businessDBConn);
 
         if (result.affectedRows < 1) {
           proceed = false;
@@ -801,10 +811,12 @@ export async function saveUserDiscountSlabsInDB(
       }
     }
 
-    if (proceed) {
-      await connection.commit();
-    } else {
-      await connection.rollback();
+    if (!connection) {
+      if (proceed) {
+        await businessDBConn.commit();
+      } else {
+        await businessDBConn.rollback();
+      }
     }
 
     return {
@@ -813,7 +825,9 @@ export async function saveUserDiscountSlabsInDB(
       data: proceed ? userDiscountSlabsData.map((plan) => plan.id) : null,
     };
   } catch (error) {
-    if (connection) await connection.rollback();
+    if (!connection && businessDBConn) {
+      await businessDBConn.rollback();
+    }
     console.error("Error saving user_discount_slabs:", error);
     return {
       status: false,
@@ -821,25 +835,32 @@ export async function saveUserDiscountSlabsInDB(
       data: null,
     };
   } finally {
-    if (connection) connection.end();
+    if (!connection && businessDBConn) {
+      await businessDBConn.end();
+    }
   }
 }
 
 export async function saveValidityDiscountSlabsInDB(
   validityDiscountSlabsData: validityDiscountSlabSchemaT[],
   product_id: number,
-  product_variant_id: number
+  product_variant_id: number,
+  connection?: Connection
 ) {
   let proceed: boolean = true;
   let errMsg: string = "";
   let result;
   let query: string;
-  let connection;
+  let businessDBConn;
   let values: any[];
 
   try {
-    connection = await getBusinessDBConn();
-    await connection.beginTransaction();
+    if (connection) {
+      businessDBConn = connection;
+    } else {
+      businessDBConn = await getBusinessDBConn();
+      await businessDBConn.beginTransaction();
+    }
 
     if (proceed && validityDiscountSlabsData) {
       query = `
@@ -850,7 +871,7 @@ export async function saveValidityDiscountSlabsInDB(
       const existingSlabs = await executeQueryInBusinessDB(
         query,
         [product_id, product_variant_id],
-        connection
+        businessDBConn
       );
 
       const existingSlabIds = existingSlabs.map(
@@ -869,7 +890,7 @@ export async function saveValidityDiscountSlabsInDB(
         result = await executeQueryInBusinessDB(
           query,
           [slabsToDelete],
-          connection
+          businessDBConn
         );
 
         if (result.affectedRows < 0) {
@@ -926,7 +947,7 @@ export async function saveValidityDiscountSlabsInDB(
           ];
         }
 
-        result = await executeQueryInBusinessDB(query, values, connection);
+        result = await executeQueryInBusinessDB(query, values, businessDBConn);
 
         if (result.affectedRows < 1) {
           proceed = false;
@@ -938,10 +959,12 @@ export async function saveValidityDiscountSlabsInDB(
       }
     }
 
-    if (proceed) {
-      await connection.commit();
-    } else {
-      await connection.rollback();
+    if (!connection) {
+      if (proceed) {
+        await businessDBConn.commit();
+      } else {
+        await businessDBConn.rollback();
+      }
     }
 
     return {
@@ -950,7 +973,9 @@ export async function saveValidityDiscountSlabsInDB(
       data: proceed ? validityDiscountSlabsData.map((plan) => plan.id) : null,
     };
   } catch (error) {
-    if (connection) await connection.rollback();
+    if (!connection && businessDBConn) {
+      await businessDBConn.rollback();
+    }
     console.error("Error saving validity_discount_slabs:", error);
     return {
       status: false,
@@ -958,37 +983,44 @@ export async function saveValidityDiscountSlabsInDB(
       data: null,
     };
   } finally {
-    if (connection) connection.end();
+    if (!connection && businessDBConn) {
+      await businessDBConn.end();
+    }
   }
 }
 
 export async function saveAddonPlansInDB(
   addonPlansData: addonPlansSchemaT[],
-  addon_id: number,
+
   product_id: number,
-  product_variant_id: number
+  product_variant_id: number,
+  connection?: Connection
 ) {
   let proceed: boolean = true;
   let errMsg: string = "";
   let result;
   let query: string;
-  let connection;
+  let businessDBConn;
   let values: any[];
 
   try {
-    connection = await getBusinessDBConn();
-    await connection.beginTransaction();
+    if (connection) {
+      businessDBConn = connection;
+    } else {
+      businessDBConn = await getBusinessDBConn();
+      await businessDBConn.beginTransaction();
+    }
 
     if (proceed && addonPlansData) {
       query = `
         SELECT id 
         FROM addon_plan 
-        WHERE addon_id = ? AND product_id = ? AND product_variant_id = ?
+        WHERE product_id = ? AND product_variant_id = ?
       `;
       const existingAddonPlans = await executeQueryInBusinessDB(
         query,
-        [addon_id, product_id, product_variant_id],
-        connection
+        [product_id, product_variant_id],
+        businessDBConn
       );
 
       const existingAddonPlanIds = existingAddonPlans.map(
@@ -1007,7 +1039,7 @@ export async function saveAddonPlansInDB(
         result = await executeQueryInBusinessDB(
           query,
           [addonPlansToDelete],
-          connection
+          businessDBConn
         );
 
         if (result.affectedRows < 0) {
@@ -1020,20 +1052,24 @@ export async function saveAddonPlansInDB(
         if (plan.id && existingAddonPlanIds.includes(plan.id)) {
           query = `
             UPDATE addon_plan SET
+              addon_id = ?,
               effective_from = ?,
               plan_name = ?,
               value = ?,
               price = ?,
               grace = ?,
+              valid_months = ?,
               updated_by = ?
             WHERE id = ?
           `;
           values = [
+            plan.addon_id,
             plan.effective_from,
             plan.plan_name,
             plan.value,
             plan.price,
             plan.grace,
+            plan.valid_months,
             plan.updated_by,
             plan.id,
           ];
@@ -1041,8 +1077,8 @@ export async function saveAddonPlansInDB(
           query = `
             INSERT INTO addon_plan (
               addon_id, product_id, product_variant_id, effective_from, 
-              plan_name, value, price, grace, created_by, updated_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              plan_name, value, price, grace, valid_months, created_by, updated_by
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `;
           values = [
             plan.addon_id,
@@ -1053,12 +1089,13 @@ export async function saveAddonPlansInDB(
             plan.value,
             plan.price,
             plan.grace,
+            plan.valid_months,
             plan.created_by,
             plan.updated_by,
           ];
         }
 
-        result = await executeQueryInBusinessDB(query, values, connection);
+        result = await executeQueryInBusinessDB(query, values, businessDBConn);
 
         if (result.affectedRows < 1) {
           proceed = false;
@@ -1070,10 +1107,12 @@ export async function saveAddonPlansInDB(
       }
     }
 
-    if (proceed) {
-      await connection.commit();
-    } else {
-      await connection.rollback();
+    if (!connection) {
+      if (proceed) {
+        await businessDBConn.commit();
+      } else {
+        await businessDBConn.rollback();
+      }
     }
 
     return {
@@ -1082,7 +1121,9 @@ export async function saveAddonPlansInDB(
       data: proceed ? addonPlansData.map((plan) => plan.id) : null,
     };
   } catch (error) {
-    if (connection) await connection.rollback();
+    if (!connection && businessDBConn) {
+      await businessDBConn.rollback();
+    }
     console.error("Error saving addon_plans:", error);
     return {
       status: false,
@@ -1090,7 +1131,9 @@ export async function saveAddonPlansInDB(
       data: null,
     };
   } finally {
-    if (connection) connection.end();
+    if (!connection && businessDBConn) {
+      await businessDBConn.end();
+    }
   }
 }
 
@@ -1255,5 +1298,100 @@ export async function getDiscountAndGrace4ExtendingValidityFromDB(
       message: handleErrorMsg(error),
       data: null,
     };
+  }
+}
+
+export async function savePricingDataInDB(
+  product_id: number,
+  product_variant_id: number,
+  addonPlansData: addonPlansSchemaT[],
+  variantPricingData: variantPricingSchemaT[],
+  userDiscountSlabData: userDiscountSlabSchemaT[],
+  validityDiscountSlabData: validityDiscountSlabSchemaT[]
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+  let query: string;
+  let connection;
+  let values: any[];
+
+  try {
+    connection = await getBusinessDBConn();
+    await connection.beginTransaction();
+
+    if (proceed) {
+      result = await saveVariantPricingInDB(
+        variantPricingData,
+        product_id,
+        product_variant_id,
+        connection
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await saveAddonPlansInDB(
+        addonPlansData,
+        product_id,
+        product_variant_id,
+        connection
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await saveUserDiscountSlabsInDB(
+        userDiscountSlabData,
+        product_id,
+        product_variant_id,
+        connection
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await saveValidityDiscountSlabsInDB(
+        validityDiscountSlabData,
+        product_id,
+        product_variant_id,
+        connection
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      await connection.commit();
+    } else {
+      await connection.rollback();
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? addonPlansData.map((plan) => plan.id) : null,
+    };
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("Error in savePricingDataInDB :", error);
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  } finally {
+    if (connection) connection.end();
   }
 }

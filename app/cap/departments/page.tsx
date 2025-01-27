@@ -367,12 +367,13 @@ const Departments = () => {
         </Alert>
       </Snackbar>
 
-      <DepartmentModal
-        open={isDepartmentModalOpen}
-        departmentId={selectedDepartmentId || undefined}
-        onClose={() => setIsDepartmentModalOpen(false)}
-        onSave={handleDepartmentSave}
-      />
+      {isDepartmentModalOpen && (
+        <DepartmentModal
+          departmentId={selectedDepartmentId || undefined}
+          onClose={() => setIsDepartmentModalOpen(false)}
+          onSave={handleDepartmentSave}
+        />
+      )}
     </Layout>
   );
 };

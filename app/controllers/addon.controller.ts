@@ -4,6 +4,7 @@ import { handleErrorMsg } from "../utils/common";
 import { addonSchema } from "../utils/zodschema";
 import { addonSchemaT } from "../utils/models";
 import {
+  addonName2CodeFromDB,
   deleteAddonFromDB,
   loadAddonFromDB,
   loadAddonListFromDB,
@@ -244,6 +245,34 @@ export async function loadAddonList() {
   try {
     if (proceed) {
       result = await loadAddonListFromDB();
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
+export async function addonName2Code(name: string) {
+  let errMsg: string = "";
+  let proceed: boolean = true;
+  let result;
+
+  try {
+    if (proceed) {
+      result = await addonName2CodeFromDB(name);
       if (!result.status) {
         proceed = false;
         errMsg = result.message;

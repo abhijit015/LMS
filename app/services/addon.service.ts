@@ -4,6 +4,42 @@ import { addonSchemaT } from "../utils/models";
 import { executeQueryInBusinessDB, getBusinessDBConn } from "../utils/db";
 import { handleErrorMsg } from "../utils/common";
 
+export async function addonName2CodeFromDB(name: string) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let addonData: any = null;
+  let result;
+  let query;
+
+  try {
+    if (proceed) {
+      query = `SELECT id FROM addon_mast WHERE name = ?`;
+      result = await executeQueryInBusinessDB(query, [name]);
+
+      if (result.length < 0) {
+        proceed = false;
+        errMsg = "Error in addonName2CodeFromDB";
+      } else if (result.length == 0) {
+        proceed = false;
+        errMsg = "Addon not found.";
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Success" : errMsg,
+      data: proceed ? result[0].id : null,
+    };
+  } catch (error) {
+    console.error("Error in addonName2CodeFromDB : ", error);
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
 export async function loadAddonFromDB(id: number) {
   let proceed: boolean = true;
   let errMsg: string = "";

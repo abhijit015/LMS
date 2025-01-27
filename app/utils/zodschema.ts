@@ -128,6 +128,7 @@ export const addonPlansSchema = z.object({
   value: z.number().int().min(0),
   price: z.number().int().min(0),
   grace: z.number().int().min(0),
+  valid_months: z.number().int().min(0),
   created_by: z.number().int().positive().optional(),
   updated_by: z.number().int().positive().optional(),
 });
@@ -222,11 +223,15 @@ export const licenseTranSchema = z.object({
   license_id: z.number().int().positive(),
   tran_type: z.number().int().positive(),
   product_variant_id: z.number().int().positive().nullable().optional(),
+  product_variant_name: z.string().trim().max(255).nullable().optional(),
   no_of_users: z.number().int().nullable().optional(),
   no_of_months: z.number().int().min(1).nullable().optional(),
   dealer_id: z.number().int().positive().nullable().optional(),
+  dealer_name: z.string().trim().max(255).nullable().optional(),
   addon_id: z.number().int().positive().nullable().optional(),
   addon_plan_id: z.number().int().positive().nullable().optional(),
+  addon_name: z.string().trim().max(255).nullable().optional(),
+  addon_plan_name: z.string().trim().max(255).nullable().optional(),
   remarks: z.string().trim().max(255).nullable().optional(),
   payment_mode: z.number().int().min(0).nullable().optional(),
   payment_ref_no: z.string().trim().max(255).nullable().optional(),
@@ -235,6 +240,7 @@ export const licenseTranSchema = z.object({
   tran_nature: z.number().int().positive(),
   created_by: z.number().int().positive().nullable().optional(),
   updated_by: z.number().int().positive().nullable().optional(),
+  created_at: z.date().nullable().optional(),
 });
 
 export const addonStatusSchema = z.object({
@@ -245,6 +251,7 @@ export const addonStatusSchema = z.object({
   addon_plan_name: z.string().trim().max(255).nullable().optional(),
   addon_plan_value: z.number().int().nullable().optional(),
   balance_addon_value: z.number().int(),
+  expiry_date: z.date(),
   grace: z.number().int().positive().nullable().optional(),
   created_by: z.number().int().positive(),
 });

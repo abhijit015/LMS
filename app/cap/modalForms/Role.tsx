@@ -18,20 +18,15 @@ import { saveRole, loadRole } from "@/app/controllers/role.controller";
 import ConfirmationModal from "./AskYesNo";
 import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface RoleModalProps {
-  open: boolean;
   roleId: number | null;
   onClose: () => void;
   onSave: () => void;
 }
 
-const RoleModal: React.FC<RoleModalProps> = ({
-  open,
-  roleId,
-  onClose,
-  onSave,
-}) => {
+const RoleModal: React.FC<RoleModalProps> = ({ roleId, onClose, onSave }) => {
   const [roleData, setRoleData] = useState<roleSchemaT | null>(null);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -78,7 +73,7 @@ const RoleModal: React.FC<RoleModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchRoleData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -180,7 +175,7 @@ const RoleModal: React.FC<RoleModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -268,7 +263,12 @@ const RoleModal: React.FC<RoleModalProps> = ({
                 mb: 1,
               }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

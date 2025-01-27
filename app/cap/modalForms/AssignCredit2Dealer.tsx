@@ -26,16 +26,15 @@ import EditIcon from "@mui/icons-material/Edit";
 import AddIcon from "@mui/icons-material/Add";
 import { loadDealerList } from "@/app/controllers/dealer.controller";
 import { DEALER_CREDIT_TRAN_ASSIGN_CREDITS } from "@/app/utils/constants";
+import SaveIcon from "@mui/icons-material/Save";
 
 interface DealerCreditTranModalProps {
-  open: boolean;
   dealerCreditTranId?: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
-  open,
   dealerCreditTranId,
   onClose,
   onSave,
@@ -116,7 +115,7 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
       }
     };
 
-    if (open && !hasLoadedData.current) {
+    if (!hasLoadedData.current) {
       fetchDealerCreditTranData();
       hasLoadedData.current = true;
     } else if (!open) {
@@ -258,7 +257,7 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
         BackdropProps={{
           onClick: (event) => event.stopPropagation(),
@@ -447,7 +446,12 @@ const DealerCreditTranModal: React.FC<DealerCreditTranModalProps> = ({
                 mb: 1,
               }}
             >
-              <Button type="submit" variant="contained" disabled={loading}>
+              <Button
+                startIcon={<SaveIcon />}
+                type="submit"
+                variant="contained"
+                disabled={loading}
+              >
                 {loading ? (
                   <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (

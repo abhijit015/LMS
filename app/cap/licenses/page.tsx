@@ -11,14 +11,24 @@ import {
   Snackbar,
   Typography,
   Link,
+  IconButton,
+  Menu,
+  MenuItem,
 } from "@mui/material";
-import { DataGrid, GridColDef, GridFilterModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridFilterModel,
+  GridRenderCellParams,
+} from "@mui/x-data-grid";
 import SearchIcon from "@mui/icons-material/Search";
 import Layout from "../layout";
 import ConfirmationModal from "../modalForms/AskYesNo";
 import LicenseModal from "../modalForms/License";
 import { loadLicenseList4Dealer } from "@/app/controllers/license.controller";
 import CategoryIcon from "@mui/icons-material/Category";
+import { useRouter } from "next/navigation";
+import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 
 interface LicenseList {
   id: number;
@@ -38,6 +48,8 @@ const Licenses = () => {
     message: string;
     severity: "error" | "success" | "info" | "warning";
   }>({ open: false, message: "", severity: "info" });
+
+  const router = useRouter();
 
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
@@ -60,40 +72,91 @@ const Licenses = () => {
     {
       field: "license_no",
       headerName: "License No.",
-      flex: 1,
-      minWidth: 150,
+      width: 150,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
-      renderCell: (params) => (
-        <Link
-          onClick={() => handleEdit(params.row.id)}
-          sx={{
-            color: "primary.main",
-            cursor: "pointer",
-            textDecoration: "none",
-            "&:hover": {
-              color: "error.main",
-            },
-          }}
-        >
-          {params.value}
-        </Link>
-      ),
+      // renderCell: (params) => (
+      //   <Link
+      //     onClick={() => openLicenseHistory(params.row.license_no)}
+      //     sx={{
+      //       color: "primary.main",
+      //       cursor: "pointer",
+      //       textDecoration: "none",
+      //       "&:hover": {
+      //         color: "error.main",
+      //       },
+      //     }}
+      //   >
+      //     {params.value}
+      //   </Link>
+      // ),
     },
     {
       field: "product_name",
       headerName: "Product",
-      flex: 1,
-      minWidth: 150,
+      width: 150,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
     {
       field: "entity_identifier",
       headerName: "Business",
-      flex: 1,
-      minWidth: 150,
+      width: 150,
       renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
     },
+    {
+      field: "actions",
+      headerName: "",
+      minWidth: 50,
+      align: "center",
+      headerAlign: "center",
+      renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      renderCell: (params: GridRenderCellParams) => (
+        <>
+          <IconButton
+            aria-label="more"
+            onClick={(event) => handleMenuClick(event, params.row.id)}
+            disabled={loading}
+          >
+            <MoreVertIcon />
+          </IconButton>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            MenuListProps={{ "aria-labelledby": "basic-button" }}
+          >
+            <MenuItem
+              onClick={() => {
+                handleEdit(params.row.id);
+                handleMenuClose();
+              }}
+            >
+              Extend
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                openLicenseHistory(params.row.license_no);
+                handleMenuClose();
+              }}
+            >
+              License History
+            </MenuItem>
+          </Menu>
+        </>
+      ),
+    },
   ];
+
+  const handleMenuClick = (
+    event: React.MouseEvent<HTMLElement>,
+    id: number
+  ) => {
+    setSelectedLicenseId(id);
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleSnackbarClose = () => {
     setSnackbar((prevState) => ({ ...prevState, open: false }));
@@ -150,6 +213,14 @@ const Licenses = () => {
   const handleEdit = (id: number) => {
     setSelectedLicenseId(id);
     setIsLicenseModalOpen(true);
+  };
+
+  const openLicenseHistory = (licenseNo: string) => {
+    setLoading(true);
+    const updatedUrl = `/cap/reports/licenseHistory?licenseNo=${encodeURIComponent(
+      licenseNo
+    )}`;
+    router.push(updatedUrl);
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,11 +332,12 @@ const Licenses = () => {
         </Alert>
       </Snackbar>
 
-      <LicenseModal
-        open={isLicenseModalOpen}
-        licenseId={selectedLicenseId}
-        onClose={() => setIsLicenseModalOpen(false)}
-      />
+      {isLicenseModalOpen && (
+        <LicenseModal
+          licenseId={selectedLicenseId}
+          onClose={() => setIsLicenseModalOpen(false)}
+        />
+      )}
     </Layout>
   );
 };

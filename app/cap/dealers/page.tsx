@@ -664,12 +664,13 @@ const Dealers = () => {
         </Alert>
       </Snackbar>
 
-      <DealerModal
-        open={isDealerModalOpen}
-        dealerId={selectedDealerId || undefined}
-        onClose={() => setIsDealerModalOpen(false)}
-        onSave={handleDealerSave}
-      />
+      {isDealerModalOpen && (
+        <DealerModal
+          dealerId={selectedDealerId || undefined}
+          onClose={() => setIsDealerModalOpen(false)}
+          onSave={handleDealerSave}
+        />
+      )}
     </Layout>
   );
 };

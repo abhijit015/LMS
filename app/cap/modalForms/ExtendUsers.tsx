@@ -1,11 +1,9 @@
 "use client";
-import { handleErrorMsg } from "@/app/utils/common";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Box,
   Button,
   Modal,
-  TextField,
   Typography,
   IconButton,
   Divider,
@@ -13,62 +11,64 @@ import {
   Snackbar,
   CircularProgress,
 } from "@mui/material";
-import ConfirmationModal from "./AskYesNo";
 import CloseIcon from "@mui/icons-material/Close";
+import SaveIcon from "@mui/icons-material/Save";
+import { formatDate, formatNum, handleErrorMsg } from "@/app/utils/common";
+import {
+  GridRowsProp,
+  DataGrid,
+  GridColDef,
+  GridRowModes,
+  GridSlotProps,
+  GridToolbarContainer,
+  GridRowModesModel,
+} from "@mui/x-data-grid";
+import ConfirmationModal from "./AskYesNo";
 import {
   loadLicenseDet,
   loadLicenseStatus,
-  saveLicenseTran,
 } from "@/app/controllers/license.controller";
+import {
+  loadActiveUserDiscountSlabs,
+  loadActiveValidityDiscountSlabs,
+  loadActiveVariantPricing,
+} from "@/app/controllers/pricing.controller";
 import {
   dealerSchemaT,
   licenseDetSchemaT,
   licenseStatusSchemaT,
-  licenseTranSchemaT,
-  productSchemaT,
 } from "@/app/utils/models";
-
-import { licenseTranSchema } from "@/app/utils/zodschema";
-import {
-  LICENSE_TRAN_EXTEND_USERS,
-  LICENSE_TRAN_NATURE_GENERAL,
-  PAYMENT_MODE_CREDITS,
-} from "@/app/utils/constants";
-import { formatNum, initLicenseTranData } from "@/app/utils/common";
-import theme from "../theme/theme";
 import {
   getCurrentDealerDet,
   getDealerCreditBalance,
 } from "@/app/controllers/dealer.controller";
-import { getCreditsReqd4ExtendingLicenseParam } from "@/app/controllers/pricing.controller";
-import { loadProduct } from "@/app/controllers/product.controller";
 
 interface ExtendUsersProps {
-  open: boolean;
   licenseId: number;
   onClose: () => void;
   onSave: () => void;
 }
 
 const ExtendUsers: React.FC<ExtendUsersProps> = ({
-  open,
   licenseId,
   onClose,
   onSave,
 }) => {
-  const [licenseTranData, setLicenseTranData] =
-    useState<licenseTranSchemaT | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [dealerData, setDealerData] = useState<dealerSchemaT>();
+  const [availableCredits, setAvailableCredits] = useState<number>(0);
   const [licenseDet, setLicenseDet] = useState<licenseDetSchemaT>();
   const [licenseStatus, setLicenseStatus] = useState<licenseStatusSchemaT>();
-  const [additionalUsers, setAdditionalUsers] = useState<number>(0);
-  const [newTotalUsers, setNewTotalUsers] = useState<number>(0);
-  const [availableCredits, setAvailableCredits] = useState<number>(0);
-  const [productUsers, setProductUsers] = useState<number>(0);
-  const [requiredCredits, setRequiredCredits] = useState<number>(0);
-  const [dealerData, setDealerData] = useState<dealerSchemaT>();
-  const [productData, setProductData] = useState<productSchemaT>();
+  const [rows4Variant, setRows4Variant] = React.useState<GridRowsProp>([]);
+  const [rowModesModel4Variant, setRowModesModel4Variant] =
+    React.useState<GridRowModesModel>({});
+  const [rows4Users, setRows4Users] = React.useState<GridRowsProp>([]);
+  const [rows4Validity, setRows4Validity] = React.useState<GridRowsProp>([]);
+  const [rows4Addon, setRows4Addon] = React.useState<GridRowsProp>([]);
+  const [rowModesModel4Users, setRowModesModel4Users] =
+    React.useState<GridRowModesModel>({});
+  const [rowModesModel4Validity, setRowModesModel4Validity] =
+    React.useState<GridRowModesModel>({});
   const [confirmationModal, setConfirmationModal] = useState({
     open: false,
     title: "",
@@ -82,128 +82,95 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
     severity: "error" | "success" | "info" | "warning";
   }>({ open: false, message: "", severity: "info" });
 
-  const hasLoadedData = useRef(false);
-  const debounceTimeout = useRef<NodeJS.Timeout>();
+  const fetchCalledRef = useRef(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        let proceed = true;
-        let errMsg = "";
-        let result: { status: boolean; data?: any; message: string };
-        let dealerId: number = 0;
-        let productId: number = 0;
-
-        setLoading(true);
-
-        if (proceed) {
-          result = await loadLicenseDet(licenseId);
-          if (!result.status) {
-            proceed = false;
-            errMsg = result.message;
-          } else {
-            setLicenseDet(result.data as licenseDetSchemaT);
-            productId = result.data.product_id;
-          }
-        }
-
-        if (proceed) {
-          setProductUsers(75);
-        }
-
-        if (proceed) {
-          result = await loadLicenseStatus(licenseId);
-          if (!result.status) {
-            proceed = false;
-            errMsg = result.message;
-          } else {
-            setLicenseStatus(result.data as licenseStatusSchemaT);
-            setNewTotalUsers(result.data.no_of_users || 0);
-          }
-        }
-
-        if (proceed) {
-          result = await getCurrentDealerDet();
-          if (!result.status) {
-            proceed = false;
-            errMsg = result.message;
-          } else {
-            setDealerData(result.data as dealerSchemaT);
-            dealerId = result.data.id;
-          }
-        }
-
-        if (proceed) {
-          result = await loadProduct(productId);
-          if (!result.status) {
-            proceed = false;
-            errMsg = result.message;
-          } else {
-            setProductData(result.data as productSchemaT);
-          }
-        }
-
-        if (proceed) {
-          result = await getDealerCreditBalance(dealerId);
-          if (!result.status) {
-            proceed = false;
-            errMsg = result.message;
-          } else {
-            setAvailableCredits(result.data);
-          }
-        }
-
-        if (!proceed) {
-          setSnackbar({
-            open: true,
-            message: errMsg,
-            severity: "error",
-          });
-        }
-      } catch (error) {
-        setSnackbar({
-          open: true,
-          message: handleErrorMsg(error),
-          severity: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (open && !hasLoadedData.current) {
-      fetchData();
-      hasLoadedData.current = true;
-    } else if (!open) {
-      setErrors({});
-      setLicenseTranData(null);
-      setAdditionalUsers(0);
-      setNewTotalUsers(0);
-      setRequiredCredits(0);
-      hasLoadedData.current = false;
-    }
-  }, [open]);
-
-  const updateCredits = async (addedUsers: number) => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
+      let proceed = true;
+      let errMsg = "";
+      let result;
+      let productId: number = 0;
+      let variantId: number = 0;
+      let dealerId: number = 0;
 
-      let result = await getCreditsReqd4ExtendingLicenseParam(
-        licenseDet?.id || 0,
-        LICENSE_TRAN_EXTEND_USERS,
-        undefined,
-        addedUsers
-      );
-      if (result.status) {
-        if (result.data) {
-          setRequiredCredits(result.data);
+      if (proceed) {
+        result = await loadLicenseDet(licenseId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
         } else {
-          setRequiredCredits(0);
+          setLicenseDet(result.data as licenseDetSchemaT);
+          productId = result.data.product_id;
         }
-      } else {
+      }
+
+      if (proceed) {
+        result = await loadLicenseStatus(licenseId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setLicenseStatus(result.data as licenseStatusSchemaT);
+          variantId = result.data.product_variant_id;
+        }
+      }
+
+      if (proceed) {
+        result = await loadActiveUserDiscountSlabs(productId, variantId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setRows4Users(result.data);
+        }
+      }
+
+      if (proceed) {
+        result = await loadActiveValidityDiscountSlabs(productId, variantId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setRows4Validity(result.data);
+        }
+      }
+
+      if (proceed) {
+        result = await loadActiveVariantPricing(productId, variantId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setRows4Variant(result.data);
+        }
+      }
+
+      if (proceed) {
+        result = await getCurrentDealerDet();
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setDealerData(result.data as dealerSchemaT);
+          dealerId = result.data.id;
+        }
+      }
+
+      if (proceed) {
+        result = await getDealerCreditBalance(dealerId);
+        if (!result.status) {
+          proceed = false;
+          errMsg = result.message;
+        } else {
+          setAvailableCredits(result.data as number);
+        }
+      }
+
+      if (!proceed) {
         setSnackbar({
           open: true,
-          message: result.message,
+          message: errMsg,
           severity: "error",
         });
       }
@@ -218,87 +185,272 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
     }
   };
 
-  const handleUsersChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-
-    const addedUsers = Number(value);
-    setAdditionalUsers(addedUsers);
-
-    if (licenseStatus?.no_of_users)
-      setNewTotalUsers(licenseStatus?.no_of_users + addedUsers);
-
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current);
+  useEffect(() => {
+    if (!fetchCalledRef.current) {
+      fetchData();
+      fetchCalledRef.current = true;
     }
+  }, []);
 
-    debounceTimeout.current = setTimeout(() => {
-      updateCredits(addedUsers);
-    }, 500);
-  };
+  const getColumns4VariantConfiguration = (): GridColDef[] => {
+    const columns: GridColDef[] = [];
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const licenseTranData: licenseTranSchemaT = initLicenseTranData();
-
-    licenseTranData.tran_type = LICENSE_TRAN_EXTEND_USERS;
-    if (licenseDet?.id) {
-      licenseTranData.license_id = licenseDet?.id;
-    }
-    licenseTranData.tran_nature = LICENSE_TRAN_NATURE_GENERAL;
-    licenseTranData.no_of_users = additionalUsers;
-    licenseTranData.payment_amt = requiredCredits;
-    licenseTranData.payment_mode = PAYMENT_MODE_CREDITS;
-
-    let result = licenseTranSchema.safeParse(licenseTranData);
-
-    if (result.success) {
-      setConfirmationModal({
-        open: true,
-        title: "Confirm Save",
-        message: "Are you sure you want to save this transaction?",
-        onConfirm: () => confirmSave(result.data),
-        onClose: () => {},
-      });
-    } else {
-      const validationErrors = result.error.errors.reduce((acc, curr) => {
-        acc[curr.path[0]] = curr.message;
-        return acc;
-      }, {} as { [key: string]: string });
-      setErrors(validationErrors);
-    }
-  };
-
-  const confirmSave = async (parsedData: licenseTranSchemaT) => {
-    try {
-      setLoading(true);
-      setConfirmationModal({ ...confirmationModal, open: false });
-
-      const result = await saveLicenseTran(parsedData);
-      if (result.status) {
-        setSnackbar({
-          open: true,
-          message: "Users extended successfully.",
-          severity: "success",
-        });
-        onSave();
-        onClose();
-      } else {
-        setSnackbar({
-          open: true,
-          message: result.message,
-          severity: "error",
-        });
+    columns.push(
+      {
+        field: "effective_from",
+        headerName: "Effective From",
+        width: 140,
+        editable: false,
+        type: "date",
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "price",
+        headerName: "Price",
+        type: "number",
+        width: 100,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "early_discount_percentage",
+        headerName: "Early Discount %",
+        type: "number",
+        width: 150,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
       }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: "Error extending users.",
-        severity: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
+    );
+
+    return columns;
   };
+
+  const getColumns4UsersConfiguration = (): GridColDef[] => {
+    const columns: GridColDef[] = [];
+
+    columns.push(
+      {
+        field: "effective_from",
+        headerName: "Effective From",
+        width: 140,
+        editable: false,
+        type: "date",
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "start_value",
+        headerName: "From (Users)",
+        type: "number",
+        width: 150,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "end_value",
+        headerName: "To (Users)",
+        type: "number",
+        width: 150,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "discount_percentage",
+        headerName: "Discount %",
+        type: "number",
+        width: 150,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      }
+    );
+
+    return columns;
+  };
+
+  const getColumns4ValidityConfiguration = (): GridColDef[] => {
+    const columns: GridColDef[] = [];
+
+    columns.push(
+      {
+        field: "effective_from",
+        headerName: "Effective From",
+        width: 140,
+        editable: false,
+        type: "date",
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "start_value",
+        headerName: "From (Months)",
+        type: "number",
+        width: 180,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "end_value",
+        headerName: "To (Months)",
+        type: "number",
+        width: 180,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "discount_percentage",
+        headerName: "Discount %",
+        type: "number",
+        width: 140,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      },
+      {
+        field: "grace",
+        headerName: "Grace (Days)",
+        type: "number",
+        width: 140,
+        editable: false,
+        renderHeader: (params) => <strong>{params.colDef.headerName}</strong>,
+      }
+    );
+
+    return columns;
+  };
+
+  function EditToolbar4Variant(props: GridSlotProps["toolbar"]) {
+    const { setRows4Variant, setRowModesModel4Variant } = props;
+
+    const handleAddRecord = () => {
+      const id = Math.floor(Math.random() * 10000);
+
+      let newEffectiveDate = new Date();
+
+      if (rows4Variant.length > 0) {
+        newEffectiveDate = new Date(rows4Variant[0].effective_from);
+      }
+
+      setRows4Variant((oldRows) => [
+        ...oldRows,
+        {
+          id,
+          effective_from: newEffectiveDate,
+          isNew: true,
+          price: 0,
+          early_discount_percentage: 0,
+        },
+      ]);
+
+      setRowModesModel4Variant((oldModel) => ({
+        ...oldModel,
+        [id]: { mode: GridRowModes.Edit, fieldToFocus: "effective_from" },
+      }));
+    };
+
+    return (
+      <GridToolbarContainer>
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          width="100%"
+          minHeight="36px"
+        >
+          <Typography color="primary">Unit Price (1 User, 1 Month)</Typography>
+        </Box>
+      </GridToolbarContainer>
+    );
+  }
+
+  function EditToolbar4Users(props: GridSlotProps["toolbar"]) {
+    const { setRows4Users, setRowModesModel4Users } = props;
+
+    const handleAddRecord = () => {
+      const id = Math.floor(Math.random() * 10000);
+
+      let newEffectiveDate = new Date();
+
+      if (rows4Users.length > 0) {
+        newEffectiveDate = new Date(rows4Users[0].effective_from);
+      }
+
+      setRows4Users((oldRows) => [
+        ...oldRows,
+        {
+          id,
+          effective_from: newEffectiveDate,
+          isNew: true,
+          start_value: 0,
+          end_value: 0,
+          discount_percentage: 0,
+        },
+      ]);
+
+      setRowModesModel4Users((oldModel) => ({
+        ...oldModel,
+        [id]: { mode: GridRowModes.Edit, fieldToFocus: "effective_from" },
+      }));
+    };
+
+    return (
+      <GridToolbarContainer>
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          width="100%"
+          minHeight="36px"
+        >
+          <Typography color="primary">User-wise Discount Slabs</Typography>
+        </Box>
+      </GridToolbarContainer>
+    );
+  }
+
+  function EditToolbar4Validity(props: GridSlotProps["toolbar"]) {
+    const { setRows4Validity, setRowModesModel4Validity } = props;
+
+    const handleAddRecord = () => {
+      const id = Math.floor(Math.random() * 10000);
+
+      let newEffectiveDate = new Date();
+
+      if (rows4Validity.length > 0) {
+        newEffectiveDate = new Date(rows4Validity[0].effective_from);
+      }
+
+      setRows4Validity((oldRows) => [
+        ...oldRows,
+        {
+          id,
+          effective_from: newEffectiveDate,
+          isNew: true,
+          start_value: 0,
+          end_value: 0,
+          grace: 0,
+          discount_percentage: 0,
+        },
+      ]);
+
+      setRowModesModel4Validity((oldModel) => ({
+        ...oldModel,
+        [id]: { mode: GridRowModes.Edit, fieldToFocus: "effective_from" },
+      }));
+    };
+
+    return (
+      <GridToolbarContainer>
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          width="100%"
+          minHeight="36px"
+        >
+          <Typography color="primary">
+            Validity Extension Discount Slabs
+          </Typography>
+        </Box>
+      </GridToolbarContainer>
+    );
+  }
 
   const handleSnackbarClose = () => {
     setSnackbar((prevState) => ({ ...prevState, open: false }));
@@ -307,209 +459,104 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
   return (
     <>
       <Modal
-        open={open}
+        open={true}
         onClose={onClose}
-        BackdropProps={{
-          onClick: (event) => event.stopPropagation(),
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         <Box
           sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            width: "450px",
+            width: "100%",
+            height: "100%",
             bgcolor: "background.paper",
-            boxShadow: 24,
             p: 2,
-            borderRadius: 2,
-            outline: "none",
-            textAlign: "center",
-            border: "1px solid",
+            overflow: "auto",
           }}
         >
           <Box
             sx={{
               display: "flex",
-              alignItems: "center",
               justifyContent: "space-between",
+              alignItems: "center",
               mb: 1,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography
-                variant="h6"
-                component="h2"
-                sx={{
-                  color: "primary.main",
-                  textAlign: "left",
-                  fontWeight: "normal",
-                }}
-              >
-                Extend Users
-              </Typography>
-            </Box>
-            <IconButton
-              onClick={onClose}
-              disabled={loading}
-              sx={{
-                color: "text.primary",
-                ml: 2,
-              }}
-            >
+            <Typography variant="h6">Extend Users</Typography>
+            <IconButton onClick={onClose}>
               <CloseIcon />
             </IconButton>
           </Box>
 
-          <Divider />
+          <Divider sx={{ mb: 4 }} />
 
-          <Box
-            sx={{
-              border: "1px solid #ccc",
-              borderRadius: 2,
-              padding: 2,
-              mt: 3,
-              mb: 3,
-              position: "relative",
-            }}
-          >
-            <legend
-              style={{
-                fontSize: "0.95rem",
-                padding: "0 10px",
-                position: "absolute",
-                top: "-12px",
-                left: "10px",
-                backgroundColor: "#fff",
-                paddingRight: "10px",
-                color: theme.palette.secondary.dark,
-              }}
-            >
-              Current User Details
-            </legend>
-
+          <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
             <Box
               sx={{
-                display: "grid",
-                gridTemplateColumns: "120px 20px auto",
-                alignItems: "start",
-                mb: 2,
-                mt: 1,
-              }}
-            >
-              <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                Current Users
-              </Typography>
-              <Typography sx={{ textAlign: "left" }}>:</Typography>
-              <Typography sx={{ textAlign: "left" }}>
-                {formatNum(licenseStatus?.no_of_users) || ""}
-              </Typography>
-            </Box>
-
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "120px 20px auto",
-                alignItems: "start",
-              }}
-            >
-              <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                {productData?.name} Users
-              </Typography>
-              <Typography sx={{ textAlign: "left" }}>:</Typography>
-              <Typography sx={{ textAlign: "left" }}>
-                {formatNum(productUsers)}
-              </Typography>
-            </Box>
-          </Box>
-
-          <form onSubmit={handleSubmit}>
-            <Box
-              sx={{
+                flex: 1,
                 border: "1px solid #ccc",
                 borderRadius: 2,
-                padding: 2,
-                mt: 4,
-                mb: 3,
+                p: 3,
                 position: "relative",
               }}
             >
-              <legend
-                style={{
-                  fontSize: "0.95rem",
-                  padding: "0 10px",
+              <Typography
+                sx={{
                   position: "absolute",
-                  top: "-12px",
-                  left: "10px",
-                  backgroundColor: "#fff",
-                  paddingRight: "10px",
-                  color: theme.palette.secondary.dark,
+                  top: -10,
+                  left: 10,
+                  px: 1,
+                  bgcolor: "background.paper",
+                  color: "secondary.dark",
                 }}
               >
-                Specify Extension Details
-              </legend>
+                Extension Details
+              </Typography>
+            </Box>
 
-              <Box
+            <Box
+              sx={{
+                flex: 1,
+                border: "1px solid #ccc",
+                borderRadius: 2,
+                p: 3,
+                position: "relative",
+              }}
+            >
+              <Typography
                 sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 2,
-                  mt: 2,
+                  position: "absolute",
+                  top: -10,
+                  left: 10,
+                  px: 1,
+                  bgcolor: "background.paper",
+                  color: "secondary.dark",
                 }}
               >
-                <TextField
-                  type="number"
-                  autoComplete="off"
-                  label="Specify Users"
-                  name="no_of_users"
-                  size="small"
-                  disabled={loading}
-                  required
-                  onChange={handleUsersChange}
-                  error={!!errors.no_of_users}
-                  helperText={errors.no_of_users}
-                />
-              </Box>
-
+                Required Credits Breakdown
+              </Typography>
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "150px 20px auto",
+                  gridTemplateColumns: "150px 20px 100px",
                   alignItems: "start",
-                  mt: 3,
+                  mt: 1,
                 }}
               >
                 <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                  New Users
+                  Credits Available
                 </Typography>
                 <Typography sx={{ textAlign: "left" }}>:</Typography>
-                <Typography sx={{ textAlign: "left" }}>
-                  {formatNum(newTotalUsers)}
+                <Typography sx={{ textAlign: "right" }}>
+                  {formatNum(availableCredits)}
                 </Typography>
               </Box>
-
               <Box
                 sx={{
                   display: "grid",
-                  gridTemplateColumns: "150px 20px auto",
-                  alignItems: "start",
-                  mt: 2,
-                }}
-              >
-                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
-                  Credits Required
-                </Typography>
-                <Typography sx={{ textAlign: "left" }}>:</Typography>
-                <Typography sx={{ textAlign: "left" }}>
-                  {formatNum(requiredCredits)}
-                </Typography>
-              </Box>
-
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: "150px 20px auto",
+                  gridTemplateColumns: "150px 20px 100px",
                   alignItems: "start",
                   mt: 2,
                 }}
@@ -518,36 +565,139 @@ const ExtendUsers: React.FC<ExtendUsersProps> = ({
                   Credits Available
                 </Typography>
                 <Typography sx={{ textAlign: "left" }}>:</Typography>
-                <Typography sx={{ textAlign: "left" }}>
+                <Typography sx={{ textAlign: "right" }}>
                   {formatNum(availableCredits)}
                 </Typography>
               </Box>
-            </Box>
-            <Box
-              sx={{ display: "flex", justifyContent: "center", gap: 2, mb: 1 }}
-            >
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={
-                  loading ||
-                  requiredCredits > availableCredits ||
-                  additionalUsers === 0 ||
-                  newTotalUsers <= 0 ||
-                  newTotalUsers < productUsers
-                }
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "150px 20px 100px",
+                  alignItems: "start",
+                  mt: 2,
+                }}
               >
-                {loading ? (
-                  <CircularProgress size={24} sx={{ color: "white" }} />
-                ) : (
-                  "Extend"
-                )}
-              </Button>
-              <Button onClick={onClose} disabled={loading} variant="outlined">
-                Quit
-              </Button>
+                <Typography sx={{ fontWeight: "bold", textAlign: "left" }}>
+                  Credits Available
+                </Typography>
+                <Typography sx={{ textAlign: "left" }}>:</Typography>
+                <Typography sx={{ textAlign: "right" }}>
+                  {formatNum(5656565)}
+                </Typography>
+              </Box>
             </Box>
-          </form>
+          </Box>
+
+          <Box
+            sx={{
+              border: "1px solid #ccc",
+              borderRadius: 2,
+              p: 3,
+              position: "relative",
+              mb: 3,
+            }}
+          >
+            <Typography
+              sx={{
+                position: "absolute",
+                top: -10,
+                left: 10,
+                px: 1,
+                bgcolor: "background.paper",
+                color: "secondary.dark",
+              }}
+            >
+              License Plans & Pricing
+            </Typography>
+
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+              }}
+            >
+              <DataGrid
+                rows={rows4Variant}
+                columns={getColumns4VariantConfiguration()}
+                slots={{ toolbar: EditToolbar4Variant }}
+                slotProps={{
+                  toolbar: { setRows4Variant, setRowModesModel4Variant },
+                }}
+                rowHeight={39}
+                columnHeaderHeight={39}
+                hideFooter
+                sx={{
+                  flex: 0.7,
+                  "& .MuiDataGrid-columnHeader": { fontSize: "16px" },
+                  "& .MuiDataGrid-cell": {
+                    border: "none",
+                    fontSize: "16px",
+                  },
+                  height: "360px",
+                }}
+              />
+              <DataGrid
+                rows={rows4Users}
+                columns={getColumns4UsersConfiguration()}
+                slots={{ toolbar: EditToolbar4Users }}
+                slotProps={{
+                  toolbar: { setRows4Users, setRowModesModel4Users },
+                }}
+                rowHeight={39}
+                columnHeaderHeight={39}
+                hideFooter
+                sx={{
+                  flex: 1,
+                  "& .MuiDataGrid-columnHeader": { fontSize: "16px" },
+                  "& .MuiDataGrid-cell": {
+                    border: "none",
+                    fontSize: "16px",
+                  },
+                  height: "360px",
+                }}
+              />
+              <DataGrid
+                rows={rows4Validity}
+                columns={getColumns4ValidityConfiguration()}
+                slots={{ toolbar: EditToolbar4Validity }}
+                slotProps={{
+                  toolbar: { setRows4Validity, setRowModesModel4Validity },
+                }}
+                rowHeight={39}
+                columnHeaderHeight={39}
+                hideFooter
+                sx={{
+                  flex: 1.3,
+                  "& .MuiDataGrid-columnHeader": { fontSize: "16px" },
+                  "& .MuiDataGrid-cell": {
+                    border: "none",
+                    fontSize: "16px",
+                  },
+                  height: "360px",
+                }}
+              />
+            </Box>
+          </Box>
+
+          <Box sx={{ display: "flex", justifyContent: "center", gap: 2 }}>
+            <Button
+              type="submit"
+              startIcon={<SaveIcon />}
+              variant="contained"
+              disabled={loading}
+            >
+              {loading ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : (
+                "Extend"
+              )}
+            </Button>
+            <Button variant="outlined" onClick={onClose}>
+              Quit
+            </Button>
+          </Box>
         </Box>
       </Modal>
 

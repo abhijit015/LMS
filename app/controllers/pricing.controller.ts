@@ -34,6 +34,7 @@ import {
   getDiscount4ExtendingUsersFromDB,
   getDiscountAndGrace4ExtendingValidityFromDB,
   loadCurrentAddonPlansFromDB,
+  savePricingDataInDB,
 } from "../services/pricing.service";
 import {
   getPendingMonthsFromExpiry,
@@ -50,7 +51,6 @@ import { loadVariant } from "./product.controller";
 
 export async function setAddonPlansDataB4Saving(
   addonPlansData: addonPlansSchemaT[],
-  addon_id: number,
   product_id: number,
   product_variant_id: number
 ) {
@@ -234,6 +234,149 @@ export async function setValidityDiscountSlabsDataB4Saving(
   }
 }
 
+export async function savePricingData(
+  product_id: number,
+  product_variant_id: number,
+  addonPlansData: addonPlansSchemaT[],
+  variantPricingData: variantPricingSchemaT[],
+  userDiscountSlabData: userDiscountSlabSchemaT[],
+  validityDiscountSlabData: validityDiscountSlabSchemaT[]
+) {
+  let proceed: boolean = true;
+  let errMsg: string = "";
+  let result;
+
+  try {
+    if (proceed) {
+      result = await setAddonPlansDataB4Saving(
+        addonPlansData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await setVariantPricingDataB4Saving(
+        variantPricingData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await setUserDiscountSlabsDataB4Saving(
+        userDiscountSlabData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await setValidityDiscountSlabsDataB4Saving(
+        validityDiscountSlabData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    //-----------------------------------------------------------------------
+
+    if (proceed) {
+      result = await canAddonPlansBeSaved(
+        addonPlansData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await canVariantPricingBeSaved(
+        variantPricingData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await canUserDiscountSlabsBeSaved(
+        userDiscountSlabData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    if (proceed) {
+      result = await canValidityDiscountSlabsBeSaved(
+        validityDiscountSlabData,
+        product_id,
+        product_variant_id
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    //-----------------------------------------------------------------------
+
+    if (proceed) {
+      result = await savePricingDataInDB(
+        product_id,
+        product_variant_id,
+        addonPlansData,
+        variantPricingData,
+        userDiscountSlabData,
+        validityDiscountSlabData
+      );
+      if (!result.status) {
+        proceed = false;
+        errMsg = result.message;
+      }
+    }
+
+    return {
+      status: proceed,
+      message: proceed ? "Addon plans saved successfully." : errMsg,
+      data: proceed ? result?.data : null,
+    };
+  } catch (error) {
+    console.error("Error saving addon_plans:", error);
+    return {
+      status: false,
+      message: handleErrorMsg(error),
+      data: null,
+    };
+  }
+}
+
 export async function saveAddonPlans(
   addonPlansData: addonPlansSchemaT[],
   addon_id: number,
@@ -248,7 +391,6 @@ export async function saveAddonPlans(
     if (proceed) {
       result = await setAddonPlansDataB4Saving(
         addonPlansData,
-        addon_id,
         product_id,
         product_variant_id
       );
@@ -261,7 +403,7 @@ export async function saveAddonPlans(
     if (proceed) {
       result = await canAddonPlansBeSaved(
         addonPlansData,
-        addon_id,
+
         product_id,
         product_variant_id
       );
@@ -274,7 +416,7 @@ export async function saveAddonPlans(
     if (proceed) {
       result = await saveAddonPlansInDB(
         addonPlansData,
-        addon_id,
+
         product_id,
         product_variant_id
       );
@@ -484,7 +626,6 @@ export async function saveValidityDiscountSlabs(
 
 export async function canAddonPlansBeSaved(
   addonPlansData: addonPlansSchemaT[],
-  addon_id: number,
   product_id: number,
   product_variant_id: number
 ) {
@@ -789,7 +930,7 @@ export async function canValidityDiscountSlabsBeSaved(
 }
 
 export async function loadActiveAddonPlans(
-  addon_id: number,
+   
   product_id: number,
   product_variant_id: number
 ) {
@@ -800,7 +941,7 @@ export async function loadActiveAddonPlans(
   try {
     if (proceed) {
       result = await loadActiveAddonPlansFromDB(
-        addon_id,
+       
         product_id,
         product_variant_id
       );
@@ -826,7 +967,7 @@ export async function loadActiveAddonPlans(
 }
 
 export async function loadCurrentAddonPlans(
-  addon_id: number,
+  
   product_id: number,
   product_variant_id: number
 ) {
@@ -837,7 +978,7 @@ export async function loadCurrentAddonPlans(
   try {
     if (proceed) {
       result = await loadCurrentAddonPlansFromDB(
-        addon_id,
+       
         product_id,
         product_variant_id
       );
@@ -970,7 +1111,7 @@ export async function loadActiveValidityDiscountSlabs(
 }
 
 export async function loadPrevAddonPlans(
-  addon_id: number,
+ 
   product_id: number,
   product_variant_id: number
 ) {
@@ -981,7 +1122,7 @@ export async function loadPrevAddonPlans(
   try {
     if (proceed) {
       result = await loadPrevAddonPlansFromDB(
-        addon_id,
+       
         product_id,
         product_variant_id
       );
